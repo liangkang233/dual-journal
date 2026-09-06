@@ -15,7 +15,7 @@ const {
 const PORT = Number(process.env.PORT) || 8787
 const UPLOAD_DIR = path.join(__dirname, '..', 'uploads')
 const CHARSET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-const INVITE_TTL_MS = 48 * 60 * 60 * 1000
+const INVITE_TTL_MS = 10 * 60 * 1000
 const MAX_MEMBERS = 2
 const CODE_RE = /^[A-Z0-9]{6}$/
 const PRESET_IDS = ['warm', 'mint', 'night', 'blush']

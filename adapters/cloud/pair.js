@@ -23,20 +23,69 @@ function getMyPair() {
     .get()
     .then((res) => {
       const pair = (res.data && res.data[0]) || null
-      if (app && app.globalData) {
-        if (pair) {
-          app.globalData.pairId = pair._id
-          app.globalData.pair = pair
-        } else {
+      if (!pair) {
+        if (app && app.globalData) {
           app.globalData.pairId = ''
           app.globalData.pair = null
         }
+        return null
       }
-      return pair
+      return scrubExpiredInvite(pair).then((cleaned) => {
+        if (app && app.globalData) {
+          app.globalData.pairId = cleaned._id
+          app.globalData.pair = cleaned
+        }
+        return cleaned
+      })
     })
 }
 
-const INVITE_TTL_MS = 48 * 60 * 60 * 1000
+const INVITE_TTL_MS = 10 * 60 * 1000 // 10 minutes
+
+/**
+ * 过期邀请码：清空码并关闭 inviteActive（相当于失效删除）
+ * @param {object} pair
+ * @returns {Promise<object>}
+ */
+function scrubExpiredInvite(pair) {
+  if (!pair || !pair._id) return Promise.resolve(pair)
+  const exp = pair.inviteExpireAt || 0
+  if (!pair.inviteActive || !pair.inviteCode || !exp || exp >= Date.now()) {
+    return Promise.resolve(pair)
+  }
+  const db = wx.cloud.database()
+  return db
+    .collection('pairs')
+    .doc(pair._id)
+    .update({
+      data: {
+        inviteCode: '',
+        inviteExpireAt: 0,
+        inviteActive: false,
+        updatedAt: Date.now(),
+      },
+    })
+    .then(() => {
+      const cleaned = Object.assign({}, pair, {
+        inviteCode: '',
+        inviteExpireAt: 0,
+        inviteActive: false,
+      })
+      const app = getApp()
+      if (app && app.globalData && app.globalData.pairId === pair._id) {
+        app.globalData.pair = cleaned
+      }
+      return cleaned
+    })
+    .catch(() =>
+      Object.assign({}, pair, {
+        inviteCode: '',
+        inviteExpireAt: 0,
+        inviteActive: false,
+      })
+    )
+}
+
 const CHARSET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
 
 function generateInviteCode() {
@@ -61,7 +110,9 @@ function cloudCallError(err, fallback) {
  * @returns {Promise<{ pairId, inviteCode, inviteExpireAt }>}
  */
 function createInviteLocal() {
-  return ensureSolo().then((pair) => {
+  return ensureSolo()
+    .then((pair) => scrubExpiredInvite(pair))
+    .then((pair) => {
     if (!pair || !pair._id) {
       return Promise.reject(new Error('无法创建个人空间，请确认已开通云开发'))
     }

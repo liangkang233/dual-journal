@@ -27,6 +27,8 @@ function formatCloudErr(err) {
   return err.message || err.errMsg || '操作失败'
 }
 
+const INVITE_COOLDOWN_MS = 10 * 1000
+
 Page({
   data: {
     paired: false,
@@ -39,6 +41,7 @@ Page({
     inputCode: '',
     loading: false,
     generating: false,
+    inviteCooldownSec: 0,
     accepting: false,
     statusText: '加载中…',
     subscribeAuthorized: false,
@@ -270,7 +273,15 @@ Page({
       wx.showToast({ title: '已满员，无法生成', icon: 'none' })
       return
     }
-    this.setData({ generating: true })
+    const lastAt = Number(wx.getStorageSync('invite_last_generate_at') || 0)
+    const waitMs = INVITE_COOLDOWN_MS - (Date.now() - lastAt)
+    if (lastAt && waitMs > 0) {
+      const sec = Math.ceil(waitMs / 1000)
+      wx.showToast({ title: '请 ' + sec + ' 秒后再生成', icon: 'none' })
+      this.setData({ inviteCooldownSec: sec })
+      return
+    }
+    this.setData({ generating: true, inviteCooldownSec: 0 })
     pairService
       .createInvite()
       .then((res) => {
@@ -281,8 +292,11 @@ Page({
           memberCount: Math.max(this.data.memberCount, 1),
           hasPair: true,
           generating: false,
-          statusText: '邀请码已生成，48 小时内有效，可分享给对方',
+          inviteCooldownSec: 10,
+          statusText: '邀请码已生成，10 分钟内有效，可分享给对方',
         })
+        try { wx.setStorageSync('invite_last_generate_at', Date.now()) } catch (e) {}
+        this._startInviteCooldownTick && this._startInviteCooldownTick()
         pushDebug(this, 'createInvite ok code=' + res.inviteCode)
         wx.showToast({ title: '已生成邀请码', icon: 'success' })
         return pairService.getMyPair()

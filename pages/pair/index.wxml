@@ -23,13 +23,13 @@
 
   <view class="section card" wx:if="{{!paired}}">
     <view class="section-title">生成邀请码</view>
-    <view class="hint">单人也可先用见闻/待办。生成邀请码后有效期 48 小时，对方可输入码或通过分享链接加入。</view>
-    <button class="btn primary invite-btn" loading="{{generating}}" disabled="{{generating || accepting}}" bindtap="onGenerate">
-      生成邀请码
+    <view class="hint">单人也可先用见闻/待办。生成邀请码后有效期 10 分钟（过期自动失效）。每 10 秒可生成一次；对方可输入码或通过分享链接加入。</view>
+    <button class="btn primary invite-btn" loading="{{generating}}" disabled="{{generating || accepting || inviteCooldownSec > 0}}" bindtap="onGenerate">
+      {{inviteCooldownSec > 0 ? ('请 ' + inviteCooldownSec + ' 秒后再生成') : '生成邀请码'}}
     </button>
     <view class="invite-box" wx:if="{{inviteCode}}">
       <view class="invite-code" bindtap="onCopyCode">{{inviteCode}}</view>
-      <view class="meta">过期时间：{{expireText}}</view>
+      <view class="meta">过期时间：{{expireText}}（10 分钟有效）</view>
       <view class="hint">点击码可复制；右上角「…」分享给好友</view>
       <button class="btn ghost" open-type="share">分享给好友</button>
     </view>
