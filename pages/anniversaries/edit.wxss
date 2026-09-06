@@ -60,3 +60,20 @@
 .submit {
   margin-top: 16rpx;
 }
+
+.label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.label-row .label {
+  margin-bottom: 0;
+}
+
+.map-pick {
+  font-size: 24rpx;
+  color: #e8915a;
+  padding: 8rpx 12rpx;
+}

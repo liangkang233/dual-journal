@@ -121,3 +121,9 @@
 .card .label {
   color: #111;
 }
+
+.map-pick {
+  font-size: 24rpx;
+  color: #e8915a;
+  padding: 8rpx 12rpx;
+}

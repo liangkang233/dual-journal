@@ -155,6 +155,24 @@
 
   function val(id) { return $(id).value.trim(); }
 
+  function nowDatetimeLocal() {
+    var d = new Date();
+    var pad = function (n) { return n < 10 ? "0" + n : "" + n; };
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) +
+      "T" + pad(d.getHours()) + ":" + pad(d.getMinutes());
+  }
+
+  function fillCreateDatetimeDefaults() {
+    var now = nowDatetimeLocal().slice(0, 16);
+    ["e-timeAt", "t-approxTime", "t-dueAt", "t-timeAt"].forEach(function (id) {
+      var el = $(id);
+      if (el && !el.value) el.value = now;
+    });
+    var aDate = $("a-date");
+    if (aDate && !aDate.value) aDate.value = now.slice(0, 10);
+  }
+
+
   /** datetime-local -> 可读本地时间字符串 */
   function dtLocalDisplay(id) {
     var raw = $(id).value;
@@ -379,6 +397,7 @@
       .then(function (pair) {
         state.pairId = pair && (pair._id || pair.pairId) || '';
         updateMeta();
+        fillCreateDatetimeDefaults();
         return Promise.all([loadEntries(), loadTodos(), loadAnniversaries()]);
       })
       .then(function () {

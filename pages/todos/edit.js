@@ -1,6 +1,30 @@
 const app = getApp()
 const todosService = require('../../services/todos')
 
+function pad2(n) {
+  return n < 10 ? '0' + n : '' + n
+}
+
+function nowDateClock() {
+  const d = new Date()
+  const timeDate =
+    d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate())
+  const timeClock = pad2(d.getHours()) + ':' + pad2(d.getMinutes())
+  return {
+    timeDate,
+    timeClock,
+    timeAt: timeDate + ' ' + timeClock,
+  }
+}
+
+function parseTimeAt(str) {
+  const s = String(str || '').trim()
+  if (!s) return { timeDate: '', timeClock: '' }
+  const m = s.match(/^(\d{4}-\d{2}-\d{2})(?:[ T](\d{2}:\d{2}))?/)
+  if (!m) return { timeDate: '', timeClock: '' }
+  return { timeDate: m[1], timeClock: m[2] || '' }
+}
+
 Page({
   data: {
     approxClock: '',
@@ -14,6 +38,8 @@ Page({
     approxTime: '',
     timeAt: '',
     location: '',
+    latitude: null,
+    longitude: null,
     people: '',
     cause: '',
     process: '',
@@ -46,6 +72,15 @@ Page({
       const id = (options && options.id) || ''
       if (!id) {
         wx.setNavigationBarTitle({ title: '新建待办' })
+        const now = nowDateClock()
+        this.setData({
+          timeDate: now.timeDate,
+          timeClock: now.timeClock,
+          timeAt: now.timeAt,
+          approxDate: now.timeDate,
+          approxClock: now.timeClock,
+          approxTime: now.timeAt,
+        })
         return
       }
 
@@ -66,12 +101,20 @@ Page({
           setTimeout(() => wx.navigateBack({ delta: 1 }), 400)
           return
         }
+        const timeAt = doc.timeAt || ''
+        const approxTime = doc.approxTime || ''
+        const timeParsed = parseTimeAt(timeAt)
+        const approxParsed = parseTimeAt(approxTime)
         this.setData({
           title: doc.title || '',
           priority: doc.priority || 'medium',
           dueDate: doc.dueAt ? this.tsToDateStr(doc.dueAt) : '',
-          approxTime: doc.approxTime || '',
-          timeAt: doc.timeAt || '',
+          approxTime,
+          approxDate: approxParsed.timeDate,
+          approxClock: approxParsed.timeClock,
+          timeAt,
+          timeDate: timeParsed.timeDate,
+          timeClock: timeParsed.timeClock,
           location: doc.location || '',
           people: doc.people || '',
           cause: doc.cause || '',
@@ -88,8 +131,7 @@ Page({
 
   tsToDateStr(ts) {
     const d = new Date(ts)
-    const pad = (n) => (n < 10 ? '0' + n : '' + n)
-    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate())
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate())
   },
 
   dateStrToTs(str) {
@@ -104,11 +146,10 @@ Page({
     return Number.isNaN(t) ? null : t
   },
 
-
   syncDateTimeField(dateKey, clockKey, targetKey) {
     const date = this.data[dateKey] || ''
     const clock = this.data[clockKey] || ''
-    const timeAt = date ? (date + (clock ? ' ' + clock : '')) : ''
+    const timeAt = date ? date + (clock ? ' ' + clock : '') : ''
     this.setData({ [targetKey]: timeAt })
   },
 
@@ -136,6 +177,25 @@ Page({
     const patch = {}
     patch[key] = e.detail.value || ''
     this.setData(patch)
+  },
+
+  onPickLocation() {
+    wx.chooseLocation({
+      success: (res) => {
+        const loc =
+          [res.name, res.address].filter(Boolean).join(' · ') ||
+          res.address ||
+          res.name ||
+          ''
+        const patch = { location: loc }
+        if (res.latitude != null) patch.latitude = res.latitude
+        if (res.longitude != null) patch.longitude = res.longitude
+        this.setData(patch)
+      },
+      fail: () => {
+        wx.showToast({ title: '需授权位置或取消', icon: 'none' })
+      },
+    })
   },
 
   onPriorityTap(e) {

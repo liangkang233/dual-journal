@@ -4,6 +4,30 @@ const entriesService = require('../../services/entries')
 const MAX_IMAGES = 9
 const DRAFT_KEY = 'feed_edit_draft'
 
+function pad2(n) {
+  return n < 10 ? '0' + n : '' + n
+}
+
+function nowDateClock() {
+  const d = new Date()
+  const timeDate =
+    d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate())
+  const timeClock = pad2(d.getHours()) + ':' + pad2(d.getMinutes())
+  return {
+    timeDate,
+    timeClock,
+    timeAt: timeDate + ' ' + timeClock,
+  }
+}
+
+function parseTimeAt(str) {
+  const s = String(str || '').trim()
+  if (!s) return { timeDate: '', timeClock: '' }
+  const m = s.match(/^(\d{4}-\d{2}-\d{2})(?:[ T](\d{2}:\d{2}))?/)
+  if (!m) return { timeDate: '', timeClock: '' }
+  return { timeDate: m[1], timeClock: m[2] || '' }
+}
+
 Page({
   data: {
     timeClock: '',
@@ -13,6 +37,8 @@ Page({
     title: '',
     timeAt: '',
     location: '',
+    latitude: null,
+    longitude: null,
     people: '',
     cause: '',
     process: '',
@@ -43,20 +69,42 @@ Page({
       try {
         const draft = wx.getStorageSync(DRAFT_KEY)
         if (draft && typeof draft === 'object') {
-          this.setData({
+          const patch = {
             title: draft.title || '',
             timeAt: draft.timeAt || '',
             location: draft.location || '',
+            latitude: draft.latitude != null ? draft.latitude : null,
+            longitude: draft.longitude != null ? draft.longitude : null,
             people: draft.people || '',
             cause: draft.cause || '',
             process: draft.process || draft.content || '',
             result: draft.result || '',
             tempFilePaths: draft.tempFilePaths || [],
-          })
+          }
+          if (patch.timeAt) {
+            const parsed = parseTimeAt(patch.timeAt)
+            patch.timeDate = parsed.timeDate
+            patch.timeClock = parsed.timeClock
+          } else {
+            const now = nowDateClock()
+            patch.timeDate = now.timeDate
+            patch.timeClock = now.timeClock
+            patch.timeAt = now.timeAt
+          }
+          this.setData(patch)
+          this.saveDraft()
+          return
         }
       } catch (e) {
         // ignore
       }
+      const now = nowDateClock()
+      this.setData({
+        timeDate: now.timeDate,
+        timeClock: now.timeClock,
+        timeAt: now.timeAt,
+      })
+      this.saveDraft()
     })
   },
 
@@ -71,9 +119,13 @@ Page({
           setTimeout(() => wx.navigateBack({ delta: 1 }), 400)
           return
         }
+        const timeAt = doc.timeAt || ''
+        const parsed = parseTimeAt(timeAt)
         this.setData({
           title: doc.title || '',
-          timeAt: doc.timeAt || '',
+          timeAt,
+          timeDate: parsed.timeDate,
+          timeClock: parsed.timeClock,
           location: doc.location || '',
           people: doc.people || '',
           cause: doc.cause || '',
@@ -87,12 +139,12 @@ Page({
       })
   },
 
-
   syncDateTimeField(dateKey, clockKey, targetKey) {
     const date = this.data[dateKey] || ''
     const clock = this.data[clockKey] || ''
-    const timeAt = date ? (date + (clock ? ' ' + clock : '')) : ''
+    const timeAt = date ? date + (clock ? ' ' + clock : '') : ''
     this.setData({ [targetKey]: timeAt })
+    this.saveDraft()
   },
   onTimeDateChange(e) {
     this.setData({ timeDate: e.detail.value })
@@ -112,6 +164,26 @@ Page({
     this.saveDraft()
   },
 
+  onPickLocation() {
+    wx.chooseLocation({
+      success: (res) => {
+        const loc =
+          [res.name, res.address].filter(Boolean).join(' · ') ||
+          res.address ||
+          res.name ||
+          ''
+        const patch = { location: loc }
+        if (res.latitude != null) patch.latitude = res.latitude
+        if (res.longitude != null) patch.longitude = res.longitude
+        this.setData(patch)
+        this.saveDraft()
+      },
+      fail: () => {
+        wx.showToast({ title: '需授权位置或取消', icon: 'none' })
+      },
+    })
+  },
+
   saveDraft() {
     if (this.data.isEdit) return
     try {
@@ -119,6 +191,8 @@ Page({
         title: this.data.title,
         timeAt: this.data.timeAt,
         location: this.data.location,
+        latitude: this.data.latitude,
+        longitude: this.data.longitude,
         people: this.data.people,
         cause: this.data.cause,
         process: this.data.process,

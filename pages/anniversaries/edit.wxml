@@ -25,7 +25,10 @@
   </view>
 
   <view class="card">
-    <view class="label">地点</view>
+    <view class="label-row">
+      <view class="label">地点</view>
+      <view class="map-pick" bindtap="onPickLocation">地图选点</view>
+    </view>
     <input class="title-input" placeholder="可选" maxlength="80" value="{{location}}" data-field="location" bindinput="onFieldInput" />
   </view>
   <view class="card">

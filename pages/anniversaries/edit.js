@@ -74,6 +74,26 @@ Page({
       })
   },
 
+
+  onPickLocation() {
+    wx.chooseLocation({
+      success: (res) => {
+        const loc =
+          [res.name, res.address].filter(Boolean).join(" · ") ||
+          res.address ||
+          res.name ||
+          ""
+        const patch = { location: loc }
+        if (res.latitude != null) patch.latitude = res.latitude
+        if (res.longitude != null) patch.longitude = res.longitude
+        this.setData(patch)
+      },
+      fail: () => {
+        wx.showToast({ title: "需授权位置或取消", icon: "none" })
+      },
+    })
+  },
+
   onTitleInput(e) {
     this.setData({ title: e.detail.value || '' })
   },
