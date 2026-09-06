@@ -2,7 +2,6 @@ const cloud = require('wx-server-sdk')
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
-const db = cloud.database()
 const CHARSET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
 const INVITE_TTL_MS = 48 * 60 * 60 * 1000 // 48 hours
 const MAX_MEMBERS = 2

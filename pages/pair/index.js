@@ -9,6 +9,16 @@ const {
 /** 订阅消息模板 ID 占位符 —— 开通后请替换为真实模板 ID */
 const SUBSCRIBE_TMPL_ID = 'SUBSCRIBE_TMPL_ID'
 
+
+function formatCloudErr(err) {
+  if (!err) return '操作失败'
+  const code = err.errCode || err.code
+  if (code === -601034) {
+    return '未开通云服务：开发者工具打开「云开发」并绑定本环境'
+  }
+  return err.message || err.errMsg || '操作失败'
+}
+
 Page({
   data: {
     paired: false,
@@ -20,6 +30,8 @@ Page({
     expireText: '',
     inputCode: '',
     loading: false,
+    generating: false,
+    accepting: false,
     statusText: '加载中…',
     subscribeAuthorized: false,
     subscribeHint:
@@ -183,12 +195,12 @@ Page({
   },
 
   onGenerate() {
-    if (this.data.loading) return
+    if (this.data.generating || this.data.accepting) return
     if (this.data.paired) {
       wx.showToast({ title: '已满员，无法生成', icon: 'none' })
       return
     }
-    this.setData({ loading: true })
+    this.setData({ generating: true })
     pairService
       .createInvite()
       .then((res) => {
@@ -198,35 +210,36 @@ Page({
           expireText: this.formatExpire(res.inviteExpireAt),
           memberCount: Math.max(this.data.memberCount, 1),
           hasPair: true,
-          loading: false,
+          generating: false,
           statusText: '邀请码已生成，48 小时内有效，可分享给对方',
         })
         wx.showToast({ title: '已生成邀请码', icon: 'success' })
         return pairService.getMyPair()
       })
       .catch((err) => {
-        this.setData({ loading: false })
-        wx.showToast({ title: err.message || '生成失败', icon: 'none' })
+        this.setData({ generating: false })
+        wx.showToast({ title: formatCloudErr(err) || '生成失败', icon: 'none' })
       })
   },
 
   onAccept() {
-    if (this.data.loading) return
+    if (this.data.generating || this.data.accepting) return
     const code = (this.data.inputCode || '').trim().toUpperCase()
     if (!isInviteCodeFormat(code)) {
       wx.showToast({ title: '请输入 6 位邀请码', icon: 'none' })
       return
     }
-    this.setData({ loading: true })
+    this.setData({ accepting: true })
     pairService
       .acceptInvite(code)
       .then(() => {
+        this.setData({ accepting: false })
         wx.showToast({ title: '加入成功', icon: 'success' })
         return this.refresh()
       })
       .catch((err) => {
-        this.setData({ loading: false })
-        wx.showToast({ title: err.message || '加入失败', icon: 'none' })
+        this.setData({ accepting: false })
+        wx.showToast({ title: formatCloudErr(err) || '加入失败', icon: 'none' })
       })
   },
 

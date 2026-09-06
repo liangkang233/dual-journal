@@ -36,32 +36,167 @@ function getMyPair() {
     })
 }
 
+const INVITE_TTL_MS = 48 * 60 * 60 * 1000
+const CHARSET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+
+function generateInviteCode() {
+  let code = ''
+  for (let i = 0; i < 6; i++) {
+    code += CHARSET[Math.floor(Math.random() * CHARSET.length)]
+  }
+  return code
+}
+
+function cloudCallError(err, fallback) {
+  const code = err && (err.errCode || err.code)
+  const msg = (err && (err.message || err.errMsg)) || ''
+  if (code === -601034) {
+    return new Error('未开通云服务：请在开发者工具打开「云开发」并绑定环境 test1')
+  }
+  return new Error(msg || fallback || '云调用失败')
+}
+
 /**
- * 生成 / 刷新邀请码
+ * 客户端生成 / 刷新邀请码（不依赖云函数，云库直写）
+ * @returns {Promise<{ pairId, inviteCode, inviteExpireAt }>}
+ */
+function createInviteLocal() {
+  return ensureSolo().then((pair) => {
+    if (!pair || !pair._id) {
+      return Promise.reject(new Error('无法创建个人空间，请确认已开通云开发'))
+    }
+    const members = pair.memberOpenids || []
+    if (members.length >= 2) {
+      return Promise.reject(new Error('配对已满员，无法再生成邀请码'))
+    }
+    const inviteCode = generateInviteCode()
+    const inviteExpireAt = Date.now() + INVITE_TTL_MS
+    const db = wx.cloud.database()
+    return db
+      .collection('pairs')
+      .doc(pair._id)
+      .update({
+        data: {
+          inviteCode: inviteCode,
+          inviteExpireAt: inviteExpireAt,
+          inviteActive: true,
+          updatedAt: Date.now(),
+        },
+      })
+      .then(() => {
+        const app = getApp()
+        if (app && app.globalData) {
+          app.globalData.pairId = pair._id
+          app.globalData.pair = Object.assign({}, pair, {
+            inviteCode: inviteCode,
+            inviteExpireAt: inviteExpireAt,
+            inviteActive: true,
+          })
+        }
+        return {
+          pairId: pair._id,
+          inviteCode: inviteCode,
+          inviteExpireAt: inviteExpireAt,
+        }
+      })
+  })
+}
+
+/**
+ * 生成 / 刷新邀请码：优先云库直写；失败再试云函数
  * @returns {Promise<{ pairId, inviteCode, inviteExpireAt }>}
  */
 function createInvite() {
-  return wx.cloud
-    .callFunction({ name: 'createInvite' })
+  return createInviteLocal().catch((localErr) => {
+    return wx.cloud
+      .callFunction({ name: 'createInvite' })
+      .then((res) => {
+        const result = res.result || {}
+        if (!result.ok) {
+          return Promise.reject(new Error(result.error || '生成邀请码失败'))
+        }
+        const app = getApp()
+        if (app && app.globalData) {
+          app.globalData.pairId = result.pairId
+        }
+        return {
+          pairId: result.pairId,
+          inviteCode: result.inviteCode,
+          inviteExpireAt: result.inviteExpireAt,
+        }
+      })
+      .catch((fnErr) => {
+        throw cloudCallError(fnErr, localErr.message || '生成邀请码失败')
+      })
+  })
+}
+
+/**
+ * 客户端接受邀请（查询 pairs 后更新成员）
+ * @param {string} inviteCode
+ * @returns {Promise<{ pairId: string }>}
+ */
+function acceptInviteLocal(inviteCode) {
+  const app = getApp()
+  const openid = app && app.globalData && app.globalData.openid
+  if (!openid) {
+    return Promise.reject(new Error('未登录'))
+  }
+  const db = wx.cloud.database()
+  const now = Date.now()
+  return db
+    .collection('pairs')
+    .where({
+      inviteCode: inviteCode,
+      inviteActive: true,
+    })
+    .limit(1)
+    .get()
     .then((res) => {
-      const result = res.result || {}
-      if (!result.ok) {
-        return Promise.reject(new Error(result.error || '生成邀请码失败'))
+      const pair = (res.data && res.data[0]) || null
+      if (!pair) {
+        return Promise.reject(new Error('邀请码无效或已失效'))
       }
-      const app = getApp()
-      if (app && app.globalData) {
-        app.globalData.pairId = result.pairId
+      if (pair.inviteExpireAt && pair.inviteExpireAt < now) {
+        return Promise.reject(new Error('邀请码已过期'))
       }
-      return {
-        pairId: result.pairId,
-        inviteCode: result.inviteCode,
-        inviteExpireAt: result.inviteExpireAt,
+      const members = pair.memberOpenids || []
+      if (members.indexOf(openid) >= 0) {
+        if (app.globalData) {
+          app.globalData.pairId = pair._id
+          app.globalData.pair = pair
+        }
+        return { pairId: pair._id }
       }
+      if (members.length >= 2) {
+        return Promise.reject(new Error('配对已满员'))
+      }
+      const nextMembers = members.concat([openid])
+      return db
+        .collection('pairs')
+        .doc(pair._id)
+        .update({
+          data: {
+            memberOpenids: nextMembers,
+            inviteActive: nextMembers.length >= 2 ? false : true,
+            updatedAt: now,
+          },
+        })
+        .then(() => {
+          if (app.globalData) {
+            app.globalData.pairId = pair._id
+            app.globalData.pair = Object.assign({}, pair, {
+              memberOpenids: nextMembers,
+              inviteActive: nextMembers.length < 2,
+            })
+          }
+          return { pairId: pair._id }
+        })
     })
 }
 
 /**
- * 接受邀请码加入配对
+ * 接受邀请码加入配对：优先云库直写；失败再试云函数
  * @param {string} code
  * @returns {Promise<{ pairId: string }>}
  */
@@ -69,22 +204,27 @@ function acceptInvite(code) {
   const inviteCode = String(code || '')
     .trim()
     .toUpperCase()
-  return wx.cloud
-    .callFunction({
-      name: 'acceptInvite',
-      data: { inviteCode },
-    })
-    .then((res) => {
-      const result = res.result || {}
-      if (!result.ok) {
-        return Promise.reject(new Error(result.error || '加入配对失败'))
-      }
-      const app = getApp()
-      if (app && app.globalData) {
-        app.globalData.pairId = result.pairId
-      }
-      return { pairId: result.pairId }
-    })
+  return acceptInviteLocal(inviteCode).catch((localErr) => {
+    return wx.cloud
+      .callFunction({
+        name: 'acceptInvite',
+        data: { inviteCode },
+      })
+      .then((res) => {
+        const result = res.result || {}
+        if (!result.ok) {
+          return Promise.reject(new Error(result.error || '加入配对失败'))
+        }
+        const app = getApp()
+        if (app && app.globalData) {
+          app.globalData.pairId = result.pairId
+        }
+        return { pairId: result.pairId }
+      })
+      .catch((fnErr) => {
+        throw cloudCallError(fnErr, localErr.message || '加入配对失败')
+      })
+  })
 }
 
 /**

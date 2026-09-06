@@ -10,7 +10,7 @@
   <view class="section card" wx:if="{{!paired}}">
     <view class="section-title">生成邀请码</view>
     <view class="hint">单人也可先用见闻/待办。生成邀请码后有效期 48 小时，对方可输入码或通过分享链接加入。</view>
-    <button class="btn primary invite-btn" loading="{{loading}}" disabled="{{loading}}" bindtap="onGenerate">
+    <button class="btn primary invite-btn" loading="{{generating}}" disabled="{{generating || accepting}}" bindtap="onGenerate">
       生成邀请码
     </button>
     <view class="invite-box" wx:if="{{inviteCode}}">
@@ -30,7 +30,7 @@
       value="{{inputCode}}"
       bindinput="onInputCode"
     />
-    <button class="btn primary invite-btn" loading="{{loading}}" disabled="{{loading}}" bindtap="onAccept">
+    <button class="btn primary invite-btn" loading="{{accepting}}" disabled="{{accepting || generating}}" bindtap="onAccept">
       加入配对
     </button>
   </view>

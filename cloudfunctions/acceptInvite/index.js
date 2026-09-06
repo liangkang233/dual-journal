@@ -2,7 +2,6 @@ const cloud = require('wx-server-sdk')
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
-const db = cloud.database()
 const CODE_RE = /^[A-Z0-9]{6}$/
 const MAX_MEMBERS = 2
 
@@ -16,6 +15,7 @@ function isInviteCodeFormat(code) {
  * @returns {{ ok: true, pairId } | { ok: false, error }}
  */
 exports.main = async (event) => {
+  const db = cloud.database()
   const { OPENID } = cloud.getWXContext()
   if (!OPENID) {
     return { ok: false, error: '未获取到登录态' }
