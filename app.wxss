@@ -94,3 +94,18 @@ page {
   padding: 16rpx 48rpx;
   border-radius: 48rpx;
 }
+
+.empty-visible .empty-title {
+  color: #111 !important;
+}
+
+.empty-visible .empty-desc {
+  color: #333 !important;
+}
+
+.empty-cta {
+  background: #07c160 !important;
+  color: #fff !important;
+  border: 2rpx solid #05964a;
+  font-weight: 600;
+}

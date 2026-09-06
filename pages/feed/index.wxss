@@ -108,3 +108,31 @@
   box-shadow: 0 8rpx 24rpx rgba(7, 193, 96, 0.35);
   z-index: 10;
 }
+
+
+.entry-fields {
+  font-size: 24rpx;
+  color: #444;
+  margin-bottom: 10rpx;
+}
+
+.entry-result {
+  margin-top: 10rpx;
+  font-size: 26rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+.empty-visible .empty-title {
+  color: #111 !important;
+}
+
+.empty-visible .empty-desc {
+  color: #333 !important;
+}
+
+.empty-visible .empty-cta {
+  background: #07c160 !important;
+  color: #fff !important;
+  border: 2rpx solid #05964a;
+}

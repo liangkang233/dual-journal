@@ -23,6 +23,17 @@ function openDb() {
   return db
 }
 
+function tableColumns(db, table) {
+  return db.prepare('PRAGMA table_info(' + table + ')').all().map((c) => c.name)
+}
+
+function addColumnIfMissing(db, table, column, typeSql) {
+  const cols = tableColumns(db, table)
+  if (cols.indexOf(column) < 0) {
+    db.exec('ALTER TABLE ' + table + ' ADD COLUMN ' + column + ' ' + typeSql)
+  }
+}
+
 function migrate(db) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS pairs (
@@ -89,6 +100,23 @@ function migrate(db) {
       created_at INTEGER NOT NULL
     );
   `)
+
+  // Shared narrative fields: 时间/地点/人物/起因/经过/结果
+  const narrativeCols = [
+    ['time_at', "TEXT NOT NULL DEFAULT ''"],
+    ['location', "TEXT NOT NULL DEFAULT ''"],
+    ['people', "TEXT NOT NULL DEFAULT ''"],
+    ['cause', "TEXT NOT NULL DEFAULT ''"],
+    ['process', "TEXT NOT NULL DEFAULT ''"],
+    ['result', "TEXT NOT NULL DEFAULT ''"],
+  ]
+  narrativeCols.forEach(([col, typ]) => {
+    addColumnIfMissing(db, 'entries', col, typ)
+    addColumnIfMissing(db, 'todos', col, typ)
+    addColumnIfMissing(db, 'anniversaries', col, typ)
+  })
+  // Todos: approximate time note (大概时间)
+  addColumnIfMissing(db, 'todos', 'approx_time', "TEXT NOT NULL DEFAULT ''")
 }
 
 function parseJson(text, fallback) {
@@ -98,6 +126,12 @@ function parseJson(text, fallback) {
   } catch (e) {
     return fallback
   }
+}
+
+function strField(row, key, fallback) {
+  const v = row[key]
+  if (v == null) return fallback == null ? '' : fallback
+  return String(v)
 }
 
 function rowToPair(row) {
@@ -116,12 +150,20 @@ function rowToPair(row) {
 
 function rowToEntry(row) {
   if (!row) return null
+  const process = strField(row, 'process', '')
+  const content = row.content || ''
   return {
     _id: row._id,
     pairId: row.pair_id,
     authorOpenid: row.author_openid,
     title: row.title || '',
-    content: row.content || '',
+    content: content,
+    timeAt: strField(row, 'time_at', ''),
+    location: strField(row, 'location', ''),
+    people: strField(row, 'people', ''),
+    cause: strField(row, 'cause', ''),
+    process: process || content,
+    result: strField(row, 'result', ''),
     imageFileIds: parseJson(row.image_file_ids, []),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -130,6 +172,7 @@ function rowToEntry(row) {
 
 function rowToTodo(row) {
   if (!row) return null
+  const process = strField(row, 'process', '')
   return {
     _id: row._id,
     pairId: row.pair_id,
@@ -137,6 +180,13 @@ function rowToTodo(row) {
     priority: row.priority || 'medium',
     status: row.status || 'open',
     dueAt: row.due_at == null ? null : row.due_at,
+    approxTime: strField(row, 'approx_time', ''),
+    timeAt: strField(row, 'time_at', ''),
+    location: strField(row, 'location', ''),
+    people: strField(row, 'people', ''),
+    cause: strField(row, 'cause', ''),
+    process: process,
+    result: strField(row, 'result', ''),
     creatorOpenid: row.creator_openid,
     updatedByOpenid: row.updated_by_openid || '',
     createdAt: row.created_at,
@@ -152,6 +202,11 @@ function rowToAnniversary(row) {
     title: row.title,
     date: row.date,
     repeatYearly: !!row.repeat_yearly,
+    location: strField(row, 'location', ''),
+    people: strField(row, 'people', ''),
+    cause: strField(row, 'cause', ''),
+    process: strField(row, 'process', ''),
+    result: strField(row, 'result', ''),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }

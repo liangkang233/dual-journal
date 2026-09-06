@@ -187,9 +187,15 @@ function updateBackground(opts) {
   })
 }
 
+/** Cloud: no auto solo — return existing pair only */
+function ensureSolo() {
+  return getMyPair()
+}
+
 module.exports = {
   getMyPair,
   createInvite,
   acceptInvite,
+  ensureSolo,
   updateBackground,
 }

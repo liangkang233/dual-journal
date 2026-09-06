@@ -30,13 +30,26 @@ App({
     this.ensureLogin()
   },
 
-  /** 登录并尝试拉取已有配对 */
+  /**
+   * 登录并拉取配对；http 模式下若无 pair 则 ensure-solo 自动创建单人空间
+   */
   ensureLogin() {
     return auth
       .login()
       .then(() => pairService.getMyPair())
+      .then((pair) => {
+        if (pair) return pair
+        if (
+          config.dataBackend === 'http' &&
+          typeof pairService.ensureSolo === 'function'
+        ) {
+          return pairService.ensureSolo()
+        }
+        return null
+      })
       .catch((err) => {
         console.error('[app] login/pair init failed', err)
+        return null
       })
   },
 })

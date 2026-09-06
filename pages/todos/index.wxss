@@ -134,3 +134,34 @@
   box-shadow: 0 8rpx 24rpx rgba(7, 193, 96, 0.35);
   z-index: 10;
 }
+
+
+.todo-fields {
+  margin-top: 6rpx;
+  margin-left: 28rpx;
+  font-size: 24rpx;
+  color: #444;
+}
+
+.countdown {
+  color: #c47a0a;
+  font-weight: 600;
+}
+
+.empty-visible .empty-title {
+  color: #111 !important;
+}
+
+.empty-visible .empty-desc {
+  color: #333 !important;
+}
+
+.empty-visible .empty-cta {
+  background: #07c160 !important;
+  color: #fff !important;
+  border: 2rpx solid #05964a;
+}
+
+.hint-center {
+  color: #333;
+}

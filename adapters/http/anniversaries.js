@@ -61,7 +61,17 @@ function upsertAnniversary(payload) {
   const repeatYearly = !!(payload && payload.repeatYearly)
 
   return requirePairId().then((pairId) => {
-    const body = { pairId, title, date, repeatYearly }
+    const body = {
+      pairId,
+      title,
+      date,
+      repeatYearly,
+      location: String((payload && payload.location) || '').trim(),
+      people: String((payload && payload.people) || '').trim(),
+      cause: String((payload && payload.cause) || '').trim(),
+      process: String((payload && payload.process) || '').trim(),
+      result: String((payload && payload.result) || '').trim(),
+    }
     if (payload && payload._id) {
       body._id = payload._id
       return request(

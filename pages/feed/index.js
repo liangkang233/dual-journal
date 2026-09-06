@@ -11,21 +11,24 @@ Page({
     todayAnns: [],
     todayBannerText: '',
     emptyTitle: '暂无见闻',
-    emptyDesc: '完成配对后，你们的共同见闻会出现在这里',
+    emptyDesc: '登录后会自动创建个人空间；也可去「我们」邀请对方',
     bgClass: 'page-bg page-bg-plain',
     bgStyle: '',
   },
 
   onShow() {
-    const paired = !!(app.globalData && app.globalData.pairId)
-    this.setData({ paired })
     applyPairBackground(this)
-    if (!paired) {
-      this.setData({ todayAnns: [], todayBannerText: '' })
-      return
-    }
-    this.loadEntries()
-    this.loadTodayAnns()
+    const boot = app.ensureLogin ? app.ensureLogin() : Promise.resolve()
+    boot.then(() => {
+      const paired = !!(app.globalData && app.globalData.pairId)
+      this.setData({ paired })
+      if (!paired) {
+        this.setData({ todayAnns: [], todayBannerText: '', entries: [] })
+        return
+      }
+      this.loadEntries()
+      this.loadTodayAnns()
+    })
   },
 
   loadTodayAnns() {
@@ -39,7 +42,6 @@ Page({
         this.setData({ todayAnns, todayBannerText })
       })
       .catch((err) => {
-        // 应用内提醒失败静默：不影响见闻列表
         console.warn('loadTodayAnns soft-fail', err)
         this.setData({ todayAnns: [], todayBannerText: '' })
       })
@@ -50,12 +52,20 @@ Page({
     entriesService
       .listEntries()
       .then((list) => {
-        const entries = (list || []).map((item) =>
-          Object.assign({}, item, {
+        const entries = (list || []).map((item) => {
+          const process = item.process || item.content || ''
+          const metaBits = []
+          if (item.timeAt) metaBits.push(item.timeAt)
+          if (item.location) metaBits.push(item.location)
+          if (item.people) metaBits.push(item.people)
+          return Object.assign({}, item, {
             timeText: this.formatTime(item.createdAt),
             previewImages: (item.imageFileIds || []).slice(0, 3),
+            processPreview: process,
+            fieldLine: metaBits.join(' · '),
+            resultPreview: item.result || '',
           })
-        )
+        })
         this.setData({ entries, loading: false })
       })
       .catch((err) => {
@@ -92,7 +102,7 @@ Page({
 
   goEdit() {
     if (!app.globalData || !app.globalData.pairId) {
-      wx.showToast({ title: '请先完成配对', icon: 'none' })
+      wx.showToast({ title: '请先完成登录/创建空间', icon: 'none' })
       wx.switchTab({ url: '/pages/pair/index' })
       return
     }
@@ -106,12 +116,17 @@ Page({
   },
 
   onPullDownRefresh() {
-    if (!this.data.paired) {
-      wx.stopPullDownRefresh()
-      return
-    }
-    this.loadEntries()
-    this.loadTodayAnns()
-    setTimeout(() => wx.stopPullDownRefresh(), 400)
+    const boot = app.ensureLogin ? app.ensureLogin() : Promise.resolve()
+    boot.then(() => {
+      const paired = !!(app.globalData && app.globalData.pairId)
+      this.setData({ paired })
+      if (!paired) {
+        wx.stopPullDownRefresh()
+        return
+      }
+      this.loadEntries()
+      this.loadTodayAnns()
+      setTimeout(() => wx.stopPullDownRefresh(), 400)
+    })
   },
 })

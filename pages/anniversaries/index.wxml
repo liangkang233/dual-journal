@@ -1,8 +1,8 @@
 <view class="page ann-page {{bgClass}}" style="{{bgStyle}}">
-  <view wx:if="{{!paired}}" class="empty">
+  <view wx:if="{{!paired}}" class="empty empty-visible">
     <view class="empty-title">{{emptyTitle}}</view>
     <view class="empty-desc">{{emptyDesc}}</view>
-    <button class="empty-cta" bindtap="goPair">去「我们」完成配对</button>
+    <button class="empty-cta" bindtap="goPair">去「我们」生成邀请 / 加入</button>
   </view>
 
   <block wx:else>
@@ -15,7 +15,7 @@
 
     <view wx:if="{{loading && !list.length}}" class="hint-center">加载中…</view>
 
-    <view wx:elif="{{!list.length}}" class="empty">
+    <view wx:elif="{{!list.length}}" class="empty empty-visible">
       <view class="empty-title">还没有纪念日</view>
       <view class="empty-desc">记下相遇、在一起或任何想纪念的日子</view>
       <button class="empty-cta" bindtap="goEdit">新建纪念日</button>

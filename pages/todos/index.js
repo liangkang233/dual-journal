@@ -1,6 +1,7 @@
 const app = getApp()
 const todosService = require('../../services/todos')
 const { sortTodos } = require('../../utils/todoSort')
+const { formatCountdown } = require('../../utils/countdown')
 const { applyPairBackground } = require('../../utils/background')
 
 const PRIORITY_LABEL = { high: '高', medium: '中', low: '低' }
@@ -11,17 +12,20 @@ Page({
     loading: false,
     todos: [],
     emptyTitle: '暂无待办',
-    emptyDesc: '完成配对后，可一起管理待办事项',
+    emptyDesc: '登录后会自动创建个人空间，可立即添加待办',
     bgClass: 'page-bg page-bg-plain',
     bgStyle: '',
   },
 
   onShow() {
-    const paired = !!(app.globalData && app.globalData.pairId)
-    this.setData({ paired })
     applyPairBackground(this)
-    if (!paired) return
-    this.loadTodos()
+    const boot = app.ensureLogin ? app.ensureLogin() : Promise.resolve()
+    boot.then(() => {
+      const paired = !!(app.globalData && app.globalData.pairId)
+      this.setData({ paired })
+      if (!paired) return
+      this.loadTodos()
+    })
   },
 
   loadTodos() {
@@ -30,13 +34,20 @@ Page({
       .listTodos()
       .then((list) => {
         const sorted = sortTodos(list || [])
-        const todos = sorted.map((item) =>
-          Object.assign({}, item, {
+        const todos = sorted.map((item) => {
+          const bits = []
+          if (item.approxTime) bits.push(item.approxTime)
+          else if (item.timeAt) bits.push(item.timeAt)
+          if (item.location) bits.push(item.location)
+          if (item.people) bits.push(item.people)
+          return Object.assign({}, item, {
             priorityLabel: PRIORITY_LABEL[item.priority] || '中',
             dueText: this.formatDue(item.dueAt),
+            countdownText: formatCountdown(item.dueAt),
+            fieldLine: bits.join(' · '),
             done: item.status === 'done',
           })
-        )
+        })
         this.setData({ todos, loading: false })
       })
       .catch((err) => {
@@ -65,7 +76,7 @@ Page({
 
   goEdit(e) {
     if (!app.globalData || !app.globalData.pairId) {
-      wx.showToast({ title: '请先完成配对', icon: 'none' })
+      wx.showToast({ title: '请先完成登录/创建空间', icon: 'none' })
       wx.switchTab({ url: '/pages/pair/index' })
       return
     }
@@ -116,11 +127,16 @@ Page({
   },
 
   onPullDownRefresh() {
-    if (!this.data.paired) {
-      wx.stopPullDownRefresh()
-      return
-    }
-    this.loadTodos()
-    setTimeout(() => wx.stopPullDownRefresh(), 400)
+    const boot = app.ensureLogin ? app.ensureLogin() : Promise.resolve()
+    boot.then(() => {
+      const paired = !!(app.globalData && app.globalData.pairId)
+      this.setData({ paired })
+      if (!paired) {
+        wx.stopPullDownRefresh()
+        return
+      }
+      this.loadTodos()
+      setTimeout(() => wx.stopPullDownRefresh(), 400)
+    })
   },
 })

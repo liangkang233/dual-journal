@@ -1,19 +1,43 @@
 <view class="page detail-page">
   <view wx:if="{{loading}}" class="hint-center">加载中…</view>
 
-  <view wx:elif="{{errorText}}" class="empty">
+  <view wx:elif="{{errorText}}" class="empty empty-visible">
     <view class="empty-title">无法查看</view>
     <view class="empty-desc">{{errorText}}</view>
-    <button class="empty-cta" wx:if="{{errorText === '请先完成配对'}}" bindtap="goPair">
-      去「我们」完成配对
+    <button class="empty-cta" wx:if="{{showPairCta}}" bindtap="goPair">
+      去「我们」
     </button>
   </view>
 
   <block wx:elif="{{entry}}">
     <view class="card">
       <view class="detail-title">{{entry.title || '无标题'}}</view>
-      <view class="detail-time">{{timeText}}</view>
-      <view class="detail-content">{{entry.content}}</view>
+      <view class="detail-time">创建于 {{timeText}}</view>
+
+      <view class="field-row" wx:if="{{entry.timeAt}}">
+        <view class="field-label">时间</view>
+        <view class="field-value">{{entry.timeAt}}</view>
+      </view>
+      <view class="field-row" wx:if="{{entry.location}}">
+        <view class="field-label">地点</view>
+        <view class="field-value">{{entry.location}}</view>
+      </view>
+      <view class="field-row" wx:if="{{entry.people}}">
+        <view class="field-label">人物</view>
+        <view class="field-value">{{entry.people}}</view>
+      </view>
+      <view class="field-row" wx:if="{{entry.cause}}">
+        <view class="field-label">起因</view>
+        <view class="field-value">{{entry.cause}}</view>
+      </view>
+      <view class="field-block">
+        <view class="field-label">经过</view>
+        <view class="detail-content">{{entry.process || entry.content || '（无）'}}</view>
+      </view>
+      <view class="field-block" wx:if="{{entry.result}}">
+        <view class="field-label">结果</view>
+        <view class="detail-content">{{entry.result}}</view>
+      </view>
     </view>
 
     <view class="card" wx:if="{{entry.imageFileIds.length}}">
@@ -28,6 +52,11 @@
           bindtap="onPreview"
         />
       </view>
+    </view>
+
+    <view class="action-row">
+      <button class="btn primary" bindtap="goEdit">编辑</button>
+      <button class="btn danger" bindtap="onDelete">删除</button>
     </view>
   </block>
 </view>

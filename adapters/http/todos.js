@@ -40,19 +40,27 @@ function upsertTodo(payload) {
       ? Number(payload.dueAt)
       : null
 
+  const p = payload || {}
   return requirePairId().then((pairId) => {
     const body = {
       pairId,
       title,
       priority,
       dueAt: dueAt && !Number.isNaN(dueAt) ? dueAt : null,
+      approxTime: String(p.approxTime || p.timeNote || '').trim(),
+      timeAt: String(p.timeAt || '').trim(),
+      location: String(p.location || '').trim(),
+      people: String(p.people || '').trim(),
+      cause: String(p.cause || '').trim(),
+      process: String(p.process || '').trim(),
+      result: String(p.result || '').trim(),
     }
-    if (payload && payload.status && VALID_STATUSES.indexOf(payload.status) >= 0) {
-      body.status = payload.status
+    if (p.status && VALID_STATUSES.indexOf(p.status) >= 0) {
+      body.status = p.status
     }
-    if (payload && payload._id) {
-      body._id = payload._id
-      return request('PUT', '/api/todos/' + encodeURIComponent(payload._id), body)
+    if (p._id) {
+      body._id = p._id
+      return request('PUT', '/api/todos/' + encodeURIComponent(p._id), body)
     }
     return request('POST', '/api/todos', body)
   })

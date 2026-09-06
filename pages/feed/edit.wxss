@@ -113,3 +113,11 @@
 .submit {
   margin-top: 16rpx;
 }
+
+.content-input.short {
+  min-height: 100rpx;
+}
+
+.card .label {
+  color: #111;
+}

@@ -7,6 +7,14 @@ Page({
     title: '',
     priority: 'medium',
     dueDate: '',
+    approxTime: '',
+    timeAt: '',
+    location: '',
+    people: '',
+    cause: '',
+    process: '',
+    result: '',
+    status: 'open',
     submitting: false,
     isEdit: false,
     priorities: [
@@ -14,26 +22,33 @@ Page({
       { value: 'medium', label: '中' },
       { value: 'low', label: '低' },
     ],
+    statuses: [
+      { value: 'open', label: '未完成' },
+      { value: 'done', label: '已完成' },
+    ],
   },
 
   onLoad(options) {
-    if (!app.globalData || !app.globalData.pairId) {
-      wx.showToast({ title: '请先完成配对', icon: 'none' })
-      setTimeout(() => {
-        wx.switchTab({ url: '/pages/pair/index' })
-      }, 400)
-      return
-    }
+    const boot = app.ensureLogin ? app.ensureLogin() : Promise.resolve()
+    boot.then(() => {
+      if (!app.globalData || !app.globalData.pairId) {
+        wx.showToast({ title: '请先完成登录/创建空间', icon: 'none' })
+        setTimeout(() => {
+          wx.switchTab({ url: '/pages/pair/index' })
+        }, 400)
+        return
+      }
 
-    const id = (options && options.id) || ''
-    if (!id) {
-      wx.setNavigationBarTitle({ title: '新建待办' })
-      return
-    }
+      const id = (options && options.id) || ''
+      if (!id) {
+        wx.setNavigationBarTitle({ title: '新建待办' })
+        return
+      }
 
-    this.setData({ id, isEdit: true })
-    wx.setNavigationBarTitle({ title: '编辑待办' })
-    this.loadTodo(id)
+      this.setData({ id, isEdit: true })
+      wx.setNavigationBarTitle({ title: '编辑待办' })
+      this.loadTodo(id)
+    })
   },
 
   loadTodo(id) {
@@ -51,6 +66,14 @@ Page({
           title: doc.title || '',
           priority: doc.priority || 'medium',
           dueDate: doc.dueAt ? this.tsToDateStr(doc.dueAt) : '',
+          approxTime: doc.approxTime || '',
+          timeAt: doc.timeAt || '',
+          location: doc.location || '',
+          people: doc.people || '',
+          cause: doc.cause || '',
+          process: doc.process || '',
+          result: doc.result || '',
+          status: doc.status || 'open',
         })
       })
       .catch((err) => {
@@ -77,14 +100,24 @@ Page({
     return Number.isNaN(t) ? null : t
   },
 
-  onTitleInput(e) {
-    this.setData({ title: e.detail.value || '' })
+  onFieldInput(e) {
+    const key = e.currentTarget.dataset.field
+    if (!key) return
+    const patch = {}
+    patch[key] = e.detail.value || ''
+    this.setData(patch)
   },
 
   onPriorityTap(e) {
     const value = e.currentTarget.dataset.value
     if (!value) return
     this.setData({ priority: value })
+  },
+
+  onStatusTap(e) {
+    const value = e.currentTarget.dataset.value
+    if (!value) return
+    this.setData({ status: value })
   },
 
   onDueChange(e) {
@@ -98,7 +131,7 @@ Page({
   onSubmit() {
     if (this.data.submitting) return
     if (!app.globalData || !app.globalData.pairId) {
-      wx.showToast({ title: '请先完成配对', icon: 'none' })
+      wx.showToast({ title: '请先完成登录/创建空间', icon: 'none' })
       wx.switchTab({ url: '/pages/pair/index' })
       return
     }
@@ -115,7 +148,15 @@ Page({
     const payload = {
       title,
       priority: this.data.priority,
+      status: this.data.status,
       dueAt: this.dateStrToTs(this.data.dueDate),
+      approxTime: (this.data.approxTime || '').trim(),
+      timeAt: (this.data.timeAt || '').trim(),
+      location: (this.data.location || '').trim(),
+      people: (this.data.people || '').trim(),
+      cause: (this.data.cause || '').trim(),
+      process: (this.data.process || '').trim(),
+      result: (this.data.result || '').trim(),
     }
     if (this.data.id) {
       payload._id = this.data.id

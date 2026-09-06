@@ -125,3 +125,28 @@
   background: #f0f0f0;
   border-color: #ddd;
 }
+
+.invite-btn {
+  background: #07c160 !important;
+  color: #fff !important;
+  border: 2rpx solid #05964a;
+  font-weight: 600;
+}
+
+.section-title {
+  color: #111 !important;
+}
+
+.status-line {
+  color: #222 !important;
+}
+
+.hint {
+  color: #444 !important;
+}
+
+.code-input {
+  color: #111;
+  background: #fff;
+  border-color: #888;
+}

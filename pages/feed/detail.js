@@ -7,6 +7,8 @@ Page({
     entry: null,
     timeText: '',
     errorText: '',
+    showPairCta: false,
+    id: '',
   },
 
   onLoad(options) {
@@ -15,12 +17,16 @@ Page({
       this.setData({ loading: false, errorText: '缺少见闻 ID' })
       return
     }
-    if (!app.globalData || !app.globalData.pairId) {
-      this.setData({ loading: false, errorText: '请先完成配对' })
-      return
-    }
     this.entryId = id
-    this.loadDetail()
+    this.setData({ id })
+    const boot = app.ensureLogin ? app.ensureLogin() : Promise.resolve()
+    boot.then(() => {
+      if (!app.globalData || !app.globalData.pairId) {
+        this.setData({ loading: false, errorText: '请先完成登录/创建空间', showPairCta: true })
+        return
+      }
+      this.loadDetail()
+    })
   },
 
   loadDetail() {
@@ -76,5 +82,32 @@ Page({
 
   goPair() {
     wx.switchTab({ url: '/pages/pair/index' })
+  },
+
+  goEdit() {
+    if (!this.entryId) return
+    wx.navigateTo({ url: '/pages/feed/edit?id=' + this.entryId })
+  },
+
+  onDelete() {
+    if (!this.entryId) return
+    wx.showModal({
+      title: '删除见闻',
+      content: '确定删除这条见闻吗？',
+      confirmText: '删除',
+      confirmColor: '#e64340',
+      success: (res) => {
+        if (!res.confirm) return
+        entriesService
+          .removeEntry(this.entryId)
+          .then(() => {
+            wx.showToast({ title: '已删除', icon: 'success' })
+            setTimeout(() => wx.navigateBack({ delta: 1 }), 400)
+          })
+          .catch((err) => {
+            wx.showToast({ title: err.message || '删除失败', icon: 'none' })
+          })
+      },
+    })
   },
 })

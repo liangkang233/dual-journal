@@ -1,8 +1,8 @@
 <view class="page feed-page {{bgClass}}" style="{{bgStyle}}">
-  <view wx:if="{{!paired}}" class="empty">
+  <view wx:if="{{!paired}}" class="empty empty-visible">
     <view class="empty-title">{{emptyTitle}}</view>
     <view class="empty-desc">{{emptyDesc}}</view>
-    <button class="empty-cta" bindtap="goPair">去「我们」完成配对</button>
+    <button class="empty-cta" bindtap="goPair">去「我们」生成邀请 / 加入</button>
   </view>
 
   <block wx:else>
@@ -18,9 +18,9 @@
 
     <view wx:if="{{loading && !entries.length}}" class="hint-center">加载中…</view>
 
-    <view wx:elif="{{!entries.length}}" class="empty">
+    <view wx:elif="{{!entries.length}}" class="empty empty-visible">
       <view class="empty-title">还没有见闻</view>
-      <view class="empty-desc">写下你们一起看到的风景与故事</view>
+      <view class="empty-desc">写下时间、地点、人物、起因、经过、结果</view>
       <button class="empty-cta" bindtap="goEdit">写一条见闻</button>
     </view>
 
@@ -33,7 +33,9 @@
         bindtap="goDetail"
       >
         <view class="entry-title">{{item.title || '无标题'}}</view>
-        <view class="entry-content">{{item.content}}</view>
+        <view class="entry-fields" wx:if="{{item.fieldLine}}">{{item.fieldLine}}</view>
+        <view class="entry-content">{{item.processPreview}}</view>
+        <view class="entry-result" wx:if="{{item.resultPreview}}">结果：{{item.resultPreview}}</view>
         <view class="entry-thumbs" wx:if="{{item.previewImages.length}}">
           <image
             wx:for="{{item.previewImages}}"

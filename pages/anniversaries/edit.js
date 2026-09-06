@@ -7,13 +7,23 @@ Page({
     title: '',
     date: '',
     repeatYearly: true,
+    location: '',
+    people: '',
+    cause: '',
+    process: '',
+    result: '',
     submitting: false,
     isEdit: false,
   },
 
   onLoad(options) {
+    const boot = app.ensureLogin ? app.ensureLogin() : Promise.resolve()
+    boot.then(() => this._afterLogin(options))
+  },
+
+  _afterLogin(options) {
     if (!app.globalData || !app.globalData.pairId) {
-      wx.showToast({ title: '请先完成配对', icon: 'none' })
+      wx.showToast({ title: '请先完成登录/创建空间', icon: 'none' })
       setTimeout(() => {
         wx.switchTab({ url: '/pages/pair/index' })
       }, 400)
@@ -22,7 +32,6 @@ Page({
 
     const id = (options && options.id) || ''
     if (!id) {
-      // 默认今天
       const d = new Date()
       const pad = (n) => (n < 10 ? '0' + n : '' + n)
       const date =
@@ -52,6 +61,11 @@ Page({
           title: doc.title || '',
           date: doc.date || '',
           repeatYearly: doc.repeatYearly !== false,
+          location: doc.location || '',
+          people: doc.people || '',
+          cause: doc.cause || '',
+          process: doc.process || '',
+          result: doc.result || '',
         })
       })
       .catch((err) => {
@@ -62,6 +76,14 @@ Page({
 
   onTitleInput(e) {
     this.setData({ title: e.detail.value || '' })
+  },
+
+  onFieldInput(e) {
+    const key = e.currentTarget.dataset.field
+    if (!key) return
+    const patch = {}
+    patch[key] = e.detail.value || ''
+    this.setData(patch)
   },
 
   onDateChange(e) {
@@ -75,7 +97,7 @@ Page({
   onSubmit() {
     if (this.data.submitting) return
     if (!app.globalData || !app.globalData.pairId) {
-      wx.showToast({ title: '请先完成配对', icon: 'none' })
+      wx.showToast({ title: '请先完成登录/创建空间', icon: 'none' })
       wx.switchTab({ url: '/pages/pair/index' })
       return
     }
@@ -97,6 +119,11 @@ Page({
       title,
       date: this.data.date,
       repeatYearly: this.data.repeatYearly,
+      location: (this.data.location || '').trim(),
+      people: (this.data.people || '').trim(),
+      cause: (this.data.cause || '').trim(),
+      process: (this.data.process || '').trim(),
+      result: (this.data.result || '').trim(),
     }
     if (this.data.id) {
       payload._id = this.data.id

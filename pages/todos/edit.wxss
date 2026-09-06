@@ -114,3 +114,15 @@
 .submit {
   margin-top: 16rpx;
 }
+
+.content-input {
+  width: 100%;
+  min-height: 100rpx;
+  font-size: 30rpx;
+  line-height: 1.6;
+  color: #222;
+}
+
+.card .label {
+  color: #111;
+}

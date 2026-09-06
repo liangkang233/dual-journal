@@ -14,6 +14,23 @@ function requirePairId() {
   return Promise.resolve(pairId)
 }
 
+function pickFields(payload) {
+  const p = payload || {}
+  const process = p.process != null ? String(p.process).trim() : ''
+  let content = p.content != null ? String(p.content).trim() : ''
+  if (!content && process) content = process
+  return {
+    title: String(p.title || '').trim(),
+    content,
+    timeAt: String(p.timeAt || '').trim(),
+    location: String(p.location || '').trim(),
+    people: String(p.people || '').trim(),
+    cause: String(p.cause || '').trim(),
+    process: process || content,
+    result: String(p.result || '').trim(),
+  }
+}
+
 function listEntries(pairId) {
   const resolveId = pairId ? Promise.resolve(pairId) : requirePairId()
   return resolveId.then((id) => {
@@ -27,19 +44,18 @@ function listEntries(pairId) {
 }
 
 function createEntry(payload) {
-  const title = (payload && payload.title) || ''
-  const content = (payload && payload.content) || ''
+  const fields = pickFields(payload)
   const tempFilePaths = ((payload && payload.tempFilePaths) || []).slice(
     0,
     MAX_IMAGES
   )
 
   return requirePairId().then((pairId) => {
-    return request('POST', '/api/entries', {
-      pairId,
-      title: String(title).trim(),
-      content: String(content).trim(),
-    }).then((entry) => {
+    return request(
+      'POST',
+      '/api/entries',
+      Object.assign({ pairId }, fields)
+    ).then((entry) => {
       if (!entry || !entry._id) {
         return Promise.reject(new Error('创建见闻失败'))
       }
@@ -66,6 +82,31 @@ function createEntry(payload) {
   })
 }
 
+function updateEntry(id, payload) {
+  if (!id) {
+    return Promise.reject(new Error('缺少见闻 ID'))
+  }
+  const fields = pickFields(payload)
+  const body = Object.assign({}, fields)
+  if (payload && Array.isArray(payload.imageFileIds)) {
+    body.imageFileIds = payload.imageFileIds.slice(0, MAX_IMAGES)
+  }
+  return requirePairId().then(() =>
+    request('PATCH', '/api/entries/' + encodeURIComponent(id), body)
+  )
+}
+
+function removeEntry(id) {
+  if (!id) {
+    return Promise.reject(new Error('缺少见闻 ID'))
+  }
+  return requirePairId().then(() =>
+    request('DELETE', '/api/entries/' + encodeURIComponent(id)).then(
+      () => undefined
+    )
+  )
+}
+
 function getEntry(id) {
   if (!id) {
     return Promise.reject(new Error('缺少见闻 ID'))
@@ -78,6 +119,8 @@ function getEntry(id) {
 module.exports = {
   listEntries,
   createEntry,
+  updateEntry,
+  removeEntry,
   getEntry,
   MAX_IMAGES,
 }

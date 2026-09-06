@@ -10,17 +10,20 @@ Page({
     list: [],
     todayList: [],
     emptyTitle: '暂无纪念日',
-    emptyDesc: '完成配对后，一起记录重要日子',
+    emptyDesc: '登录后会自动创建个人空间；也可邀请对方一起记录',
     bgClass: 'page-bg page-bg-plain',
     bgStyle: '',
   },
 
   onShow() {
-    const paired = !!(app.globalData && app.globalData.pairId)
-    this.setData({ paired })
     applyPairBackground(this)
-    if (!paired) return
-    this.loadList()
+    const boot = app.ensureLogin ? app.ensureLogin() : Promise.resolve()
+    boot.then(() => {
+      const paired = !!(app.globalData && app.globalData.pairId)
+      this.setData({ paired })
+      if (!paired) return
+      this.loadList()
+    })
   },
 
   loadList() {

@@ -95,6 +95,24 @@ function getPairRow(id) {
   return db.prepare('SELECT * FROM pairs WHERE _id = ?').get(id) || null
 }
 
+
+function pickStr(body, key, fallback) {
+  if (!body || body[key] == null) return fallback == null ? '' : fallback
+  return String(body[key]).trim()
+}
+
+function narrativeFromBody(body, existing) {
+  const ex = existing || {}
+  return {
+    timeAt: body && body.timeAt != null ? pickStr(body, 'timeAt') : (ex.time_at || ex.timeAt || ''),
+    location: body && body.location != null ? pickStr(body, 'location') : (ex.location || ''),
+    people: body && body.people != null ? pickStr(body, 'people') : (ex.people || ''),
+    cause: body && body.cause != null ? pickStr(body, 'cause') : (ex.cause || ''),
+    process: body && body.process != null ? pickStr(body, 'process') : (ex.process || ''),
+    result: body && body.result != null ? pickStr(body, 'result') : (ex.result || ''),
+  }
+}
+
 function assertMemberOfPair(openid, pairId) {
   const row = getPairRow(pairId)
   if (!row) return { ok: false, error: '配对不存在', status: 404 }
@@ -131,6 +149,30 @@ app.get('/api/pairs/me', requireAuth, (req, res) => {
   if (!row) return res.json(null)
   res.json(rowToPair(row))
 })
+
+/** Create or return a 1-member solo pair for local http use */
+app.post('/api/pairs/ensure-solo', requireAuth, (req, res) => {
+  const openid = req.openid
+  const existing = findPairByMember(openid)
+  if (existing) {
+    return res.json(rowToPair(existing))
+  }
+  const now = nowMs()
+  const id = uuidv4()
+  db.prepare(
+    `INSERT INTO pairs (_id, member_openids, invite_code, invite_expire_at, invite_active, background, created_at, updated_at)
+     VALUES (?, ?, NULL, NULL, 0, ?, ?, ?)`
+  ).run(
+    id,
+    JSON.stringify([openid]),
+    JSON.stringify({ type: 'preset', presetId: 'plain' }),
+    now,
+    now
+  )
+  const row = getPairRow(id)
+  res.json(rowToPair(row))
+})
+
 
 app.post('/api/pairs/invite', requireAuth, (req, res) => {
   const openid = req.openid
@@ -318,25 +360,32 @@ app.post('/api/entries', requireAuth, (req, res) => {
   const now = nowMs()
   const id = uuidv4()
   const title = String((req.body && req.body.title) || '').trim()
-  const content = String((req.body && req.body.content) || '').trim()
+  const nar = narrativeFromBody(req.body, null)
+  let content = String((req.body && req.body.content) || '').trim()
+  if (!content && nar.process) content = nar.process
+  if (!nar.process && content) nar.process = content
 
   db.prepare(
-    `INSERT INTO entries (_id, pair_id, author_openid, title, content, image_file_ids, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, '[]', ?, ?)`
-  ).run(id, pairId, req.openid, title, content, now, now)
-
-  res.json(
-    rowToEntry({
-      _id: id,
-      pair_id: pairId,
-      author_openid: req.openid,
-      title,
-      content,
-      image_file_ids: '[]',
-      created_at: now,
-      updated_at: now,
-    })
+    `INSERT INTO entries (_id, pair_id, author_openid, title, content, image_file_ids, time_at, location, people, cause, process, result, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, '[]', ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    id,
+    pairId,
+    req.openid,
+    title,
+    content,
+    nar.timeAt,
+    nar.location,
+    nar.people,
+    nar.cause,
+    nar.process,
+    nar.result,
+    now,
+    now
   )
+
+  const row = db.prepare('SELECT * FROM entries WHERE _id = ?').get(id)
+  res.json(rowToEntry(row))
 })
 
 app.get('/api/entries/:id', requireAuth, (req, res) => {
@@ -361,25 +410,51 @@ app.patch('/api/entries/:id', requireAuth, (req, res) => {
   let title = row.title
   let content = row.content
   let imageFileIds = JSON.parse(row.image_file_ids || '[]')
+  const nar = narrativeFromBody(req.body, row)
 
   if (req.body && req.body.title != null) {
     title = String(req.body.title).trim()
   }
   if (req.body && req.body.content != null) {
     content = String(req.body.content).trim()
+  } else if (req.body && req.body.process != null) {
+    content = nar.process
   }
   if (req.body && Array.isArray(req.body.imageFileIds)) {
     imageFileIds = req.body.imageFileIds.slice(0, 9)
   }
 
   db.prepare(
-    `UPDATE entries SET title = ?, content = ?, image_file_ids = ?, updated_at = ? WHERE _id = ?`
-  ).run(title, content, JSON.stringify(imageFileIds), now, req.params.id)
+    `UPDATE entries SET title = ?, content = ?, image_file_ids = ?, time_at = ?, location = ?, people = ?, cause = ?, process = ?, result = ?, updated_at = ? WHERE _id = ?`
+  ).run(
+    title,
+    content,
+    JSON.stringify(imageFileIds),
+    nar.timeAt,
+    nar.location,
+    nar.people,
+    nar.cause,
+    nar.process,
+    nar.result,
+    now,
+    req.params.id
+  )
 
   const updated = db
     .prepare('SELECT * FROM entries WHERE _id = ?')
     .get(req.params.id)
   res.json(rowToEntry(updated))
+})
+
+app.delete('/api/entries/:id', requireAuth, (req, res) => {
+  const row = db
+    .prepare('SELECT * FROM entries WHERE _id = ?')
+    .get(req.params.id)
+  if (!row) return res.status(404).json({ error: '见闻不存在' })
+  const check = assertMemberOfPair(req.openid, row.pair_id)
+  if (!check.ok) return res.status(check.status).json({ error: check.error })
+  db.prepare('DELETE FROM entries WHERE _id = ?').run(req.params.id)
+  res.json({ ok: true })
 })
 
 app.post(
@@ -463,9 +538,13 @@ app.post('/api/todos', requireAuth, (req, res) => {
       ? req.body.status
       : 'open'
 
+  const nar = narrativeFromBody(req.body, null)
+  const approxTime =
+    pickStr(req.body, 'approxTime') || pickStr(req.body, 'timeNote') || ''
+
   db.prepare(
-    `INSERT INTO todos (_id, pair_id, title, priority, status, due_at, creator_openid, updated_by_openid, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO todos (_id, pair_id, title, priority, status, due_at, creator_openid, updated_by_openid, time_at, location, people, cause, process, result, approx_time, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     id,
     pairId,
@@ -475,24 +554,19 @@ app.post('/api/todos', requireAuth, (req, res) => {
     dueAt,
     req.openid,
     req.openid,
+    nar.timeAt,
+    nar.location,
+    nar.people,
+    nar.cause,
+    nar.process,
+    nar.result,
+    approxTime,
     now,
     now
   )
 
-  res.json(
-    rowToTodo({
-      _id: id,
-      pair_id: pairId,
-      title,
-      priority,
-      status,
-      due_at: dueAt,
-      creator_openid: req.openid,
-      updated_by_openid: req.openid,
-      created_at: now,
-      updated_at: now,
-    })
-  )
+  const created = db.prepare('SELECT * FROM todos WHERE _id = ?').get(id)
+  res.json(rowToTodo(created))
 })
 
 app.put('/api/todos/:id', requireAuth, (req, res) => {
@@ -520,10 +594,32 @@ app.put('/api/todos/:id', requireAuth, (req, res) => {
     status = req.body.status
   }
 
+  const nar = narrativeFromBody(req.body, row)
+  let approxTime = row.approx_time || ''
+  if (req.body) {
+    if (req.body.approxTime != null) approxTime = pickStr(req.body, 'approxTime')
+    else if (req.body.timeNote != null) approxTime = pickStr(req.body, 'timeNote')
+  }
+
   const now = nowMs()
   db.prepare(
-    `UPDATE todos SET title = ?, priority = ?, status = ?, due_at = ?, updated_by_openid = ?, updated_at = ? WHERE _id = ?`
-  ).run(title, priority, status, dueAt, req.openid, now, req.params.id)
+    `UPDATE todos SET title = ?, priority = ?, status = ?, due_at = ?, updated_by_openid = ?, time_at = ?, location = ?, people = ?, cause = ?, process = ?, result = ?, approx_time = ?, updated_at = ? WHERE _id = ?`
+  ).run(
+    title,
+    priority,
+    status,
+    dueAt,
+    req.openid,
+    nar.timeAt,
+    nar.location,
+    nar.people,
+    nar.cause,
+    nar.process,
+    nar.result,
+    approxTime,
+    now,
+    req.params.id
+  )
 
   const updated = db
     .prepare('SELECT * FROM todos WHERE _id = ?')
@@ -608,22 +704,28 @@ app.post('/api/anniversaries', requireAuth, (req, res) => {
   const now = nowMs()
   const id = uuidv4()
 
-  db.prepare(
-    `INSERT INTO anniversaries (_id, pair_id, title, date, repeat_yearly, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).run(id, pairId, title, date, repeatYearly ? 1 : 0, now, now)
+  const nar = narrativeFromBody(req.body, null)
 
-  res.json(
-    rowToAnniversary({
-      _id: id,
-      pair_id: pairId,
-      title,
-      date,
-      repeat_yearly: repeatYearly ? 1 : 0,
-      created_at: now,
-      updated_at: now,
-    })
+  db.prepare(
+    `INSERT INTO anniversaries (_id, pair_id, title, date, repeat_yearly, location, people, cause, process, result, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    id,
+    pairId,
+    title,
+    date,
+    repeatYearly ? 1 : 0,
+    nar.location,
+    nar.people,
+    nar.cause,
+    nar.process,
+    nar.result,
+    now,
+    now
   )
+
+  const created = db.prepare('SELECT * FROM anniversaries WHERE _id = ?').get(id)
+  res.json(rowToAnniversary(created))
 })
 
 app.put('/api/anniversaries/:id', requireAuth, (req, res) => {
@@ -647,10 +749,22 @@ app.put('/api/anniversaries/:id', requireAuth, (req, res) => {
   }
   const repeatYearly = !!(req.body && req.body.repeatYearly)
   const now = nowMs()
+  const nar = narrativeFromBody(req.body, row)
 
   db.prepare(
-    `UPDATE anniversaries SET title = ?, date = ?, repeat_yearly = ?, updated_at = ? WHERE _id = ?`
-  ).run(title, date, repeatYearly ? 1 : 0, now, req.params.id)
+    `UPDATE anniversaries SET title = ?, date = ?, repeat_yearly = ?, location = ?, people = ?, cause = ?, process = ?, result = ?, updated_at = ? WHERE _id = ?`
+  ).run(
+    title,
+    date,
+    repeatYearly ? 1 : 0,
+    nar.location,
+    nar.people,
+    nar.cause,
+    nar.process,
+    nar.result,
+    now,
+    req.params.id
+  )
 
   const updated = db
     .prepare('SELECT * FROM anniversaries WHERE _id = ?')

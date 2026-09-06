@@ -87,11 +87,19 @@ function createEntry(payload) {
 
     const db = wx.cloud.database()
     const now = Date.now()
+    const process = String((payload && payload.process) || '').trim()
+    const contentTrim = String(content).trim() || process
     const doc = {
       pairId,
       authorOpenid: openid,
       title: String(title).trim(),
-      content: String(content).trim(),
+      content: contentTrim,
+      timeAt: String((payload && payload.timeAt) || '').trim(),
+      location: String((payload && payload.location) || '').trim(),
+      people: String((payload && payload.people) || '').trim(),
+      cause: String((payload && payload.cause) || '').trim(),
+      process: process || contentTrim,
+      result: String((payload && payload.result) || '').trim(),
       imageFileIds: [],
       createdAt: now,
       updatedAt: now,
@@ -154,9 +162,47 @@ function getEntry(id) {
   })
 }
 
+
+function updateEntry(id, payload) {
+  if (!id) return Promise.reject(new Error('缺少见闻 ID'))
+  const process = String((payload && payload.process) || '').trim()
+  let content = String((payload && payload.content) || '').trim()
+  if (!content && process) content = process
+  return requirePairId().then(() => {
+    const db = wx.cloud.database()
+    const data = {
+      title: String((payload && payload.title) || '').trim(),
+      content,
+      timeAt: String((payload && payload.timeAt) || '').trim(),
+      location: String((payload && payload.location) || '').trim(),
+      people: String((payload && payload.people) || '').trim(),
+      cause: String((payload && payload.cause) || '').trim(),
+      process: process || content,
+      result: String((payload && payload.result) || '').trim(),
+      updatedAt: Date.now(),
+    }
+    if (payload && Array.isArray(payload.imageFileIds)) {
+      data.imageFileIds = payload.imageFileIds.slice(0, MAX_IMAGES)
+    }
+    return db.collection('entries').doc(id).update({ data }).then(() =>
+      Object.assign({ _id: id }, data)
+    )
+  })
+}
+
+function removeEntry(id) {
+  if (!id) return Promise.reject(new Error('缺少见闻 ID'))
+  return requirePairId().then(() => {
+    const db = wx.cloud.database()
+    return db.collection('entries').doc(id).remove().then(() => undefined)
+  })
+}
+
 module.exports = {
   listEntries,
   createEntry,
+  updateEntry,
+  removeEntry,
   getEntry,
   MAX_IMAGES,
 }

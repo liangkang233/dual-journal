@@ -106,7 +106,7 @@ Page({
             loading: false,
             statusText: paired
               ? '已配对，两人共享同一份见闻本'
-              : '已创建空间，等待对方加入（最多 2 人）',
+              : '已有个人空间（可用见闻/待办），等待对方加入（最多 2 人）',
           })
           return this.applyBgFromPair(pair).then(() => this.checkSubscription())
         })
@@ -118,8 +118,13 @@ Page({
           })
         })
 
-    if (!openid && app.ensureLogin) {
-      return app.ensureLogin().then(run)
+    // Always prefer ensureLogin so http mode can ensure-solo
+    if (app.ensureLogin) {
+      return app.ensureLogin().then(() => {
+        const nextOpenid = (app.globalData && app.globalData.openid) || ''
+        this.setData({ openid: nextOpenid })
+        return run()
+      })
     }
     return run()
   },
@@ -128,6 +133,10 @@ Page({
     const openid = (app.globalData && app.globalData.openid) || ''
     const pairId = (app.globalData && app.globalData.pairId) || ''
     if (!openid || !pairId) {
+      this.setData({ subscribeAuthorized: false })
+      return Promise.resolve()
+    }
+    if (!wx.cloud || !(app.globalData && app.globalData.dataBackend === 'cloud')) {
       this.setData({ subscribeAuthorized: false })
       return Promise.resolve()
     }

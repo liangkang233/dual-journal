@@ -6,23 +6,87 @@
       placeholder="给这条见闻起个标题"
       maxlength="40"
       value="{{title}}"
-      bindinput="onTitleInput"
+      data-field="title"
+      bindinput="onFieldInput"
     />
   </view>
 
   <view class="card">
-    <view class="label">正文</view>
+    <view class="label">时间</view>
+    <input
+      class="title-input"
+      placeholder="日期时间或大概时间，如：周六下午"
+      maxlength="80"
+      value="{{timeAt}}"
+      data-field="timeAt"
+      bindinput="onFieldInput"
+    />
+  </view>
+
+  <view class="card">
+    <view class="label">地点</view>
+    <input
+      class="title-input"
+      placeholder="在哪里"
+      maxlength="80"
+      value="{{location}}"
+      data-field="location"
+      bindinput="onFieldInput"
+    />
+  </view>
+
+  <view class="card">
+    <view class="label">人物</view>
+    <input
+      class="title-input"
+      placeholder="涉及谁"
+      maxlength="80"
+      value="{{people}}"
+      data-field="people"
+      bindinput="onFieldInput"
+    />
+  </view>
+
+  <view class="card">
+    <view class="label">起因</view>
     <textarea
-      class="content-input"
-      placeholder="写下你们看到的、想到的…"
-      maxlength="2000"
-      value="{{content}}"
-      bindinput="onContentInput"
+      class="content-input short"
+      placeholder="为什么发生 / 起因"
+      maxlength="500"
+      value="{{cause}}"
+      data-field="cause"
+      bindinput="onFieldInput"
       auto-height
     />
   </view>
 
   <view class="card">
+    <view class="label">经过</view>
+    <textarea
+      class="content-input"
+      placeholder="事情是怎么经过的…"
+      maxlength="2000"
+      value="{{process}}"
+      data-field="process"
+      bindinput="onFieldInput"
+      auto-height
+    />
+  </view>
+
+  <view class="card">
+    <view class="label">结果</view>
+    <textarea
+      class="content-input short"
+      placeholder="最终结果 / 感受"
+      maxlength="500"
+      value="{{result}}"
+      data-field="result"
+      bindinput="onFieldInput"
+      auto-height
+    />
+  </view>
+
+  <view class="card" wx:if="{{!isEdit}}">
     <view class="label-row">
       <view class="label">图片</view>
       <view class="hint-inline">最多 {{maxImages}} 张</view>
@@ -59,6 +123,6 @@
     disabled="{{submitting}}"
     bindtap="onSubmit"
   >
-    发布见闻
+    {{isEdit ? '保存修改' : '发布见闻'}}
   </button>
 </view>

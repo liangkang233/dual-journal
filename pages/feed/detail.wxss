@@ -5,7 +5,7 @@
 .hint-center {
   margin-top: 120rpx;
   text-align: center;
-  color: #999;
+  color: #333;
   font-size: 28rpx;
 }
 
@@ -20,20 +20,49 @@
 .detail-title {
   font-size: 40rpx;
   font-weight: 700;
-  color: #222;
+  color: #111;
   line-height: 1.4;
 }
 
 .detail-time {
   margin-top: 12rpx;
+  margin-bottom: 20rpx;
   font-size: 24rpx;
-  color: #999;
+  color: #555;
+}
+
+.field-row {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 12rpx;
+  font-size: 28rpx;
+}
+
+.field-label {
+  flex-shrink: 0;
+  width: 80rpx;
+  color: #111;
+  font-weight: 600;
+}
+
+.field-value {
+  flex: 1;
+  color: #333;
+  word-break: break-word;
+}
+
+.field-block {
+  margin-top: 24rpx;
+}
+
+.field-block .field-label {
+  width: auto;
+  margin-bottom: 8rpx;
 }
 
 .detail-content {
-  margin-top: 28rpx;
   font-size: 30rpx;
-  color: #444;
+  color: #222;
   line-height: 1.7;
   white-space: pre-wrap;
   word-break: break-word;
@@ -49,4 +78,35 @@
   width: 100%;
   border-radius: 16rpx;
   background: #eee;
+}
+
+.action-row {
+  display: flex;
+  gap: 24rpx;
+  margin-top: 8rpx;
+}
+
+.btn {
+  flex: 1;
+  border-radius: 48rpx;
+  font-size: 30rpx;
+}
+
+.btn.primary {
+  background: #07c160;
+  color: #fff;
+}
+
+.btn.danger {
+  background: #fff;
+  color: #e64340;
+  border: 2rpx solid #e64340;
+}
+
+.empty-visible .empty-title {
+  color: #111 !important;
+}
+
+.empty-visible .empty-desc {
+  color: #333 !important;
 }

@@ -137,9 +137,25 @@ function updateBackground(opts) {
   })
 }
 
+
+function ensureSolo() {
+  return request('POST', '/api/pairs/ensure-solo').then((pair) => {
+    if (!pair || !pair._id) {
+      return Promise.reject(new Error((pair && pair.error) || '创建个人空间失败'))
+    }
+    const app = getApp()
+    if (app && app.globalData) {
+      app.globalData.pairId = pair._id
+      app.globalData.pair = pair
+    }
+    return pair
+  })
+}
+
 module.exports = {
   getMyPair,
   createInvite,
   acceptInvite,
+  ensureSolo,
   updateBackground,
 }

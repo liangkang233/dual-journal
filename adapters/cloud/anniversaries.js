@@ -105,6 +105,11 @@ function upsertAnniversary(payload) {
         title,
         date,
         repeatYearly,
+        location: String((payload && payload.location) || '').trim(),
+        people: String((payload && payload.people) || '').trim(),
+        cause: String((payload && payload.cause) || '').trim(),
+        process: String((payload && payload.process) || '').trim(),
+        result: String((payload && payload.result) || '').trim(),
         updatedAt: now,
       }
       return db
@@ -119,6 +124,11 @@ function upsertAnniversary(payload) {
       title,
       date,
       repeatYearly,
+      location: String((payload && payload.location) || '').trim(),
+      people: String((payload && payload.people) || '').trim(),
+      cause: String((payload && payload.cause) || '').trim(),
+      process: String((payload && payload.process) || '').trim(),
+      result: String((payload && payload.result) || '').trim(),
       createdAt: now,
       updatedAt: now,
     }

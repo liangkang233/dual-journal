@@ -11,7 +11,7 @@
   </view>
 
   <view class="card">
-    <view class="label">日期</view>
+    <view class="label">日期（时间）</view>
     <picker mode="date" value="{{date}}" bindchange="onDateChange">
       <view class="date-picker {{date ? '' : 'placeholder'}}">
         {{date || '选择日期'}}
@@ -22,6 +22,27 @@
   <view class="card row-card">
     <view class="label no-margin">每年重复</view>
     <switch checked="{{repeatYearly}}" color="#07c160" bindchange="onRepeatChange" />
+  </view>
+
+  <view class="card">
+    <view class="label">地点</view>
+    <input class="title-input" placeholder="可选" maxlength="80" value="{{location}}" data-field="location" bindinput="onFieldInput" />
+  </view>
+  <view class="card">
+    <view class="label">人物</view>
+    <input class="title-input" placeholder="可选" maxlength="80" value="{{people}}" data-field="people" bindinput="onFieldInput" />
+  </view>
+  <view class="card">
+    <view class="label">起因</view>
+    <input class="title-input" placeholder="可选" maxlength="200" value="{{cause}}" data-field="cause" bindinput="onFieldInput" />
+  </view>
+  <view class="card">
+    <view class="label">经过</view>
+    <input class="title-input" placeholder="可选" maxlength="200" value="{{process}}" data-field="process" bindinput="onFieldInput" />
+  </view>
+  <view class="card">
+    <view class="label">结果</view>
+    <input class="title-input" placeholder="可选" maxlength="200" value="{{result}}" data-field="result" bindinput="onFieldInput" />
   </view>
 
   <view class="hint-block">
