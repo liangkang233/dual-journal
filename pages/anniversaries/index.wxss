@@ -1,1 +1,125 @@
-/* page-specific styles inherit from app.wxss */
+.ann-page {
+  padding-bottom: 160rpx;
+  position: relative;
+}
+
+.hint-center {
+  margin-top: 120rpx;
+  text-align: center;
+  color: #999;
+  font-size: 28rpx;
+}
+
+.today-banner {
+  background: linear-gradient(135deg, #fff5e6, #ffe8f0);
+  border-radius: 20rpx;
+  padding: 24rpx 28rpx;
+  margin-bottom: 24rpx;
+  border: 2rpx solid #ffd4a8;
+}
+
+.today-banner-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #d4880f;
+  margin-bottom: 12rpx;
+}
+
+.today-banner-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+
+.today-chip {
+  background: #fff;
+  color: #c47a0a;
+  font-size: 26rpx;
+  padding: 8rpx 20rpx;
+  border-radius: 24rpx;
+}
+
+.ann-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.ann-card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 24rpx 28rpx;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+}
+
+.ann-card.is-today {
+  border: 2rpx solid #ffb74d;
+}
+
+.ann-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.ann-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.ann-title {
+  flex: 1;
+  font-size: 30rpx;
+  font-weight: 500;
+  color: #222;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.today-tag {
+  flex-shrink: 0;
+  font-size: 22rpx;
+  color: #fff;
+  background: #ff9800;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+}
+
+.ann-meta {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #999;
+}
+
+.ann-meta .dot {
+  margin: 0 8rpx;
+}
+
+.ann-del {
+  flex-shrink: 0;
+  font-size: 26rpx;
+  color: #e64340;
+  padding: 12rpx 8rpx;
+}
+
+.fab {
+  position: fixed;
+  right: 40rpx;
+  bottom: calc(40rpx + env(safe-area-inset-bottom));
+  width: 104rpx;
+  height: 104rpx;
+  border-radius: 52rpx;
+  background: #07c160;
+  color: #fff;
+  font-size: 56rpx;
+  font-weight: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8rpx 24rpx rgba(7, 193, 96, 0.35);
+  z-index: 10;
+}

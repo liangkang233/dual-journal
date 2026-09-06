@@ -1,0 +1,9 @@
+{
+  "name": "onAnniversaryTick",
+  "version": "1.0.0",
+  "description": "Daily anniversary subscribe message tick (configure timer trigger in cloud console)",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

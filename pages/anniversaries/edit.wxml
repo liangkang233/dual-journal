@@ -1,0 +1,39 @@
+<view class="page edit-page">
+  <view class="card">
+    <view class="label">标题</view>
+    <input
+      class="title-input"
+      placeholder="纪念日名称，如：在一起"
+      maxlength="40"
+      value="{{title}}"
+      bindinput="onTitleInput"
+    />
+  </view>
+
+  <view class="card">
+    <view class="label">日期</view>
+    <picker mode="date" value="{{date}}" bindchange="onDateChange">
+      <view class="date-picker {{date ? '' : 'placeholder'}}">
+        {{date || '选择日期'}}
+      </view>
+    </picker>
+  </view>
+
+  <view class="card row-card">
+    <view class="label no-margin">每年重复</view>
+    <switch checked="{{repeatYearly}}" color="#07c160" bindchange="onRepeatChange" />
+  </view>
+
+  <view class="hint-block">
+    开启「每年重复」后，每年同一月日都会提醒；关闭则仅在该完整日期提醒一次。
+  </view>
+
+  <button
+    class="btn primary submit"
+    loading="{{submitting}}"
+    disabled="{{submitting}}"
+    bindtap="onSubmit"
+  >
+    {{isEdit ? '保存修改' : '创建纪念日'}}
+  </button>
+</view>

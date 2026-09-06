@@ -1,11 +1,14 @@
 const app = getApp()
 const entriesService = require('../../services/entries')
+const annService = require('../../services/anniversaries')
 
 Page({
   data: {
     paired: false,
     loading: false,
     entries: [],
+    todayAnns: [],
+    todayBannerText: '',
     emptyTitle: '暂无见闻',
     emptyDesc: '完成配对后，你们的共同见闻会出现在这里',
   },
@@ -13,8 +16,29 @@ Page({
   onShow() {
     const paired = !!(app.globalData && app.globalData.pairId)
     this.setData({ paired })
-    if (!paired) return
+    if (!paired) {
+      this.setData({ todayAnns: [], todayBannerText: '' })
+      return
+    }
     this.loadEntries()
+    this.loadTodayAnns()
+  },
+
+  loadTodayAnns() {
+    annService
+      .listAnniversaries()
+      .then((list) => {
+        const todayAnns = annService.getTodaysAnniversaries(list || [])
+        const todayBannerText = todayAnns.length
+          ? '今日纪念：' + todayAnns.map((a) => a.title).join('、')
+          : ''
+        this.setData({ todayAnns, todayBannerText })
+      })
+      .catch((err) => {
+        // 应用内提醒失败静默：不影响见闻列表
+        console.warn('loadTodayAnns soft-fail', err)
+        this.setData({ todayAnns: [], todayBannerText: '' })
+      })
   },
 
   loadEntries() {
@@ -58,6 +82,10 @@ Page({
     wx.switchTab({ url: '/pages/pair/index' })
   },
 
+  goAnniversaries() {
+    wx.switchTab({ url: '/pages/anniversaries/index' })
+  },
+
   goEdit() {
     if (!app.globalData || !app.globalData.pairId) {
       wx.showToast({ title: '请先完成配对', icon: 'none' })
@@ -79,6 +107,7 @@ Page({
       return
     }
     this.loadEntries()
+    this.loadTodayAnns()
     setTimeout(() => wx.stopPullDownRefresh(), 400)
   },
 })

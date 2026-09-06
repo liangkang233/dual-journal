@@ -6,6 +6,16 @@
   </view>
 
   <block wx:else>
+    <view
+      class="today-banner"
+      wx:if="{{todayBannerText}}"
+      bindtap="goAnniversaries"
+    >
+      <view class="today-banner-icon">🎉</view>
+      <view class="today-banner-text">{{todayBannerText}}</view>
+      <view class="today-banner-more">查看</view>
+    </view>
+
     <view wx:if="{{loading && !entries.length}}" class="hint-center">加载中…</view>
 
     <view wx:elif="{{!entries.length}}" class="empty">

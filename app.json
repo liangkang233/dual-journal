@@ -6,7 +6,8 @@
     "pages/pair/index",
     "pages/feed/edit",
     "pages/feed/detail",
-    "pages/todos/edit"
+    "pages/todos/edit",
+    "pages/anniversaries/edit"
   ],
   "window": {
     "navigationBarTitleText": "双人见闻",

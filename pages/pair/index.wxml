@@ -36,6 +36,16 @@
 
   <view class="section card" wx:if="{{paired}}">
     <view class="section-title">已配对</view>
-    <view class="hint">你们已结成一对。见闻、待办、纪念日将共享同步。背景与订阅提醒将在后续开放。</view>
+    <view class="hint">你们已结成一对。见闻、待办、纪念日将共享同步。</view>
+  </view>
+
+  <view class="section card" wx:if="{{hasPair}}">
+    <view class="section-title">纪念日订阅提醒</view>
+    <view class="hint">{{subscribeHint}}</view>
+    <view class="meta" wx:if="{{subscribeAuthorized}}">状态：已授权（可再次点击刷新授权）</view>
+    <view class="meta muted" wx:else>状态：未授权 · 未授权时仍可在见闻页看到「今日纪念」</view>
+    <button class="btn primary" bindtap="onRequestSubscribe">
+      {{subscribeAuthorized ? '重新授权订阅消息' : '开启订阅消息提醒'}}
+    </button>
   </view>
 </view>
