@@ -47,7 +47,7 @@
     "disableSWC": true
   },
   "compileType": "miniprogram",
-  "libVersion": "3.5.5",
+  "libVersion": "3.17.2",
   "appid": "wxe973b8825d2d5991",
   "projectname": "hello-share",
   "condition": {},
