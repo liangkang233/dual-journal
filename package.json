@@ -1,0 +1,7 @@
+{
+  "name": "hello-share",
+  "private": true,
+  "scripts": {
+    "test": "node tests/invite.test.js && node tests/todoSort.test.js && node tests/anniversary.test.js"
+  }
+}
