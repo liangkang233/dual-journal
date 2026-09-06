@@ -1,7 +1,7 @@
 <view class="page pair-page {{bgClass}}" style="{{bgStyle}}">
   <image class="hero-cover" src="/assets/cover/launch.jpg" mode="aspectFill" />
 
-  <view class="section card debug-panel">
+  <view class="section card debug-panel" wx:if="{{showDebug}}">
     <view class="section-title" bindtap="onToggleDebug">真机调试 {{showDebug ? '▾' : '▸'}}</view>
     <block wx:if="{{showDebug}}">
       <view class="meta">backend：{{dataBackend}}</view>

@@ -54,7 +54,8 @@ Page({
     bgClass: 'page-bg page-bg-warm',
     bgStyle: '',
     bgSaving: false,
-    showDebug: true,
+    showDebug: false,
+    envVersion: '',
     debugLines: [],
     lastError: '',
     cloudEnvId: '',
@@ -70,11 +71,16 @@ Page({
 
   onShow() {
     const cfg = require('../../config/index')
+    const isDev = !!(app.globalData && app.globalData.isDevBuild)
     this.setData({
       cloudEnvId: cfg.cloudEnvId || '',
       dataBackend: cfg.dataBackend || '',
+      showDebug: isDev,
+      envVersion: (app.globalData && app.globalData.envVersion) || '',
     })
-    pushDebug(this, 'onShow backend=' + (cfg.dataBackend || '') + ' env=' + (cfg.cloudEnvId || ''))
+    if (isDev) {
+      pushDebug(this, 'onShow backend=' + (cfg.dataBackend || '') + ' env=' + (cfg.cloudEnvId || '') + ' envVersion=develop')
+    }
     this.refresh()
   },
 
