@@ -1,4 +1,4 @@
-<view class="page ann-page">
+<view class="page ann-page {{bgClass}}" style="{{bgStyle}}">
   <view wx:if="{{!paired}}" class="empty">
     <view class="empty-title">{{emptyTitle}}</view>
     <view class="empty-desc">{{emptyDesc}}</view>

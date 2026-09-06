@@ -1,6 +1,7 @@
 const app = getApp()
 const annService = require('../../services/anniversaries')
 const { isAnniversaryToday } = require('../../utils/anniversary')
+const { applyPairBackground } = require('../../utils/background')
 
 Page({
   data: {
@@ -10,11 +11,14 @@ Page({
     todayList: [],
     emptyTitle: '暂无纪念日',
     emptyDesc: '完成配对后，一起记录重要日子',
+    bgClass: 'page-bg page-bg-plain',
+    bgStyle: '',
   },
 
   onShow() {
     const paired = !!(app.globalData && app.globalData.pairId)
     this.setData({ paired })
+    applyPairBackground(this)
     if (!paired) return
     this.loadList()
   },

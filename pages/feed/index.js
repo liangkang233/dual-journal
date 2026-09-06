@@ -1,6 +1,7 @@
 const app = getApp()
 const entriesService = require('../../services/entries')
 const annService = require('../../services/anniversaries')
+const { applyPairBackground } = require('../../utils/background')
 
 Page({
   data: {
@@ -11,11 +12,14 @@ Page({
     todayBannerText: '',
     emptyTitle: '暂无见闻',
     emptyDesc: '完成配对后，你们的共同见闻会出现在这里',
+    bgClass: 'page-bg page-bg-plain',
+    bgStyle: '',
   },
 
   onShow() {
     const paired = !!(app.globalData && app.globalData.pairId)
     this.setData({ paired })
+    applyPairBackground(this)
     if (!paired) {
       this.setData({ todayAnns: [], todayBannerText: '' })
       return

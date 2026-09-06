@@ -11,6 +11,59 @@ page {
   box-sizing: border-box;
 }
 
+/* —— 配对空间背景预设 —— */
+.page-bg {
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+}
+
+.page-bg-plain {
+  background-color: #f5f5f5;
+  background-image: none;
+}
+
+.page-bg-warm {
+  background-color: #fff4e8;
+  background-image: linear-gradient(165deg, #ffe8d0 0%, #ffd4bc 45%, #f5e6d8 100%);
+}
+
+.page-bg-mint {
+  background-color: #e8f7f2;
+  background-image: linear-gradient(165deg, #d8f5eb 0%, #c5ebe0 45%, #e6f4ef 100%);
+}
+
+.page-bg-night {
+  background-color: #1a1f2e;
+  background-image: linear-gradient(165deg, #1e2740 0%, #2a3350 50%, #1a1f2e 100%);
+  color: #e8eaf0;
+}
+
+.page-bg-night .empty-title,
+.page-bg-night .section-title,
+.page-bg-night .status-line,
+.page-bg-night .entry-title,
+.page-bg-night .todo-title,
+.page-bg-night .ann-title {
+  color: #f0f2f8;
+}
+
+.page-bg-night .empty-desc,
+.page-bg-night .hint,
+.page-bg-night .meta,
+.page-bg-night .entry-content,
+.page-bg-night .entry-meta {
+  color: #a8b0c4;
+}
+
+.page-bg-custom {
+  background-color: #f0f0f0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
 .empty {
   margin-top: 160rpx;
   display: flex;

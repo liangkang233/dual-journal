@@ -1,4 +1,4 @@
-<view class="page pair-page">
+<view class="page pair-page {{bgClass}}" style="{{bgStyle}}">
   <view class="section card">
     <view class="section-title">配对状态</view>
     <view class="status-line">{{statusText}}</view>
@@ -37,6 +37,27 @@
   <view class="section card" wx:if="{{paired}}">
     <view class="section-title">已配对</view>
     <view class="hint">你们已结成一对。见闻、待办、纪念日将共享同步。</view>
+  </view>
+
+  <view class="section card" wx:if="{{hasPair}}">
+    <view class="section-title">空间背景</view>
+    <view class="hint">预设主题双方同步；也可上传一张自定义背景图。</view>
+    <view class="preset-row">
+      <view
+        wx:for="{{presets}}"
+        wx:key="id"
+        class="preset-chip preset-{{item.id}} {{bgType === 'preset' && bgPresetId === item.id ? 'active' : ''}}"
+        data-id="{{item.id}}"
+        bindtap="onSelectPreset"
+      >{{item.label}}</view>
+    </view>
+    <view class="meta" wx:if="{{bgType === 'custom'}}">当前：自定义图片</view>
+    <button
+      class="btn ghost"
+      loading="{{bgSaving}}"
+      disabled="{{bgSaving}}"
+      bindtap="onUploadBackground"
+    >上传自定义背景</button>
   </view>
 
   <view class="section card" wx:if="{{hasPair}}">

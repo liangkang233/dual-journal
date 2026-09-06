@@ -2,6 +2,8 @@
  * 配对相关云函数封装
  */
 
+const { PRESET_IDS } = require('../utils/background')
+
 /**
  * 查询当前用户所在的 pair（云数据库 pairs，memberOpenids 含 openid）
  * @returns {Promise<object|null>}
@@ -85,8 +87,109 @@ function acceptInvite(code) {
     })
 }
 
+/**
+ * 要求已有 pairId
+ * @returns {Promise<string>}
+ */
+function requirePairId() {
+  const app = getApp()
+  const pairId = app && app.globalData && app.globalData.pairId
+  if (!pairId) {
+    return Promise.reject(new Error('尚未配对，无法更换背景'))
+  }
+  return Promise.resolve(pairId)
+}
+
+/**
+ * 上传自定义背景图到云存储
+ * @param {string} pairId
+ * @param {string} tempFilePath
+ * @returns {Promise<string>} fileID
+ */
+function uploadBackgroundImage(pairId, tempFilePath) {
+  const cloudPath = 'pairs/' + pairId + '/background.jpg'
+  return wx.cloud
+    .uploadFile({
+      cloudPath: cloudPath,
+      filePath: tempFilePath,
+    })
+    .then((res) => {
+      if (!res.fileID) {
+        return Promise.reject(new Error('背景图上传失败'))
+      }
+      return res.fileID
+    })
+}
+
+/**
+ * 更新 pair 背景主题
+ * @param {{ type: 'preset'|'custom', presetId?: string, fileId?: string, tempFilePath?: string }} opts
+ * @returns {Promise<{ type: string, presetId?: string, fileId?: string }>}
+ */
+function updateBackground(opts) {
+  const type = opts && opts.type
+  if (type !== 'preset' && type !== 'custom') {
+    return Promise.reject(new Error('背景类型无效'))
+  }
+
+  return requirePairId().then((pairId) => {
+    let prepare
+    if (type === 'preset') {
+      const presetId =
+        PRESET_IDS.indexOf(opts.presetId) >= 0 ? opts.presetId : ''
+      if (!presetId) {
+        return Promise.reject(new Error('请选择有效的预设主题'))
+      }
+      prepare = Promise.resolve({
+        type: 'preset',
+        presetId: presetId,
+      })
+    } else if (opts.tempFilePath) {
+      prepare = uploadBackgroundImage(pairId, opts.tempFilePath).then(
+        (fileId) => ({
+          type: 'custom',
+          fileId: fileId,
+        })
+      )
+    } else if (opts.fileId) {
+      prepare = Promise.resolve({
+        type: 'custom',
+        fileId: opts.fileId,
+      })
+    } else {
+      return Promise.reject(new Error('请选择自定义背景图'))
+    }
+
+    return prepare.then((background) => {
+      const db = wx.cloud.database()
+      const now = Date.now()
+      return db
+        .collection('pairs')
+        .doc(pairId)
+        .update({
+          data: {
+            background: background,
+            updatedAt: now,
+          },
+        })
+        .then(() => {
+          const app = getApp()
+          if (app && app.globalData) {
+            const pair = app.globalData.pair || { _id: pairId }
+            app.globalData.pair = Object.assign({}, pair, {
+              background: background,
+              updatedAt: now,
+            })
+          }
+          return background
+        })
+    })
+  })
+}
+
 module.exports = {
   getMyPair,
   createInvite,
   acceptInvite,
+  updateBackground,
 }

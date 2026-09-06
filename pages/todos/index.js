@@ -1,6 +1,7 @@
 const app = getApp()
 const todosService = require('../../services/todos')
 const { sortTodos } = require('../../utils/todoSort')
+const { applyPairBackground } = require('../../utils/background')
 
 const PRIORITY_LABEL = { high: '高', medium: '中', low: '低' }
 
@@ -11,11 +12,14 @@ Page({
     todos: [],
     emptyTitle: '暂无待办',
     emptyDesc: '完成配对后，可一起管理待办事项',
+    bgClass: 'page-bg page-bg-plain',
+    bgStyle: '',
   },
 
   onShow() {
     const paired = !!(app.globalData && app.globalData.pairId)
     this.setData({ paired })
+    applyPairBackground(this)
     if (!paired) return
     this.loadTodos()
   },

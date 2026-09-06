@@ -84,3 +84,44 @@
   background: #fafafa;
   margin-bottom: 8rpx;
 }
+
+.preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  margin-bottom: 20rpx;
+}
+
+.preset-chip {
+  min-width: 120rpx;
+  padding: 16rpx 24rpx;
+  border-radius: 40rpx;
+  font-size: 26rpx;
+  text-align: center;
+  border: 2rpx solid transparent;
+  color: #333;
+}
+
+.preset-chip.active {
+  border-color: #07c160;
+  box-shadow: 0 0 0 2rpx rgba(7, 193, 96, 0.25);
+  font-weight: 600;
+}
+
+.preset-warm {
+  background: linear-gradient(135deg, #ffe8d0, #ffd4bc);
+}
+
+.preset-mint {
+  background: linear-gradient(135deg, #d8f5eb, #c5ebe0);
+}
+
+.preset-night {
+  background: linear-gradient(135deg, #1e2740, #2a3350);
+  color: #e8eaf0;
+}
+
+.preset-plain {
+  background: #f0f0f0;
+  border-color: #ddd;
+}

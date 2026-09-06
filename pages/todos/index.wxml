@@ -1,4 +1,4 @@
-<view class="page todos-page">
+<view class="page todos-page {{bgClass}}" style="{{bgStyle}}">
   <view wx:if="{{!paired}}" class="empty">
     <view class="empty-title">{{emptyTitle}}</view>
     <view class="empty-desc">{{emptyDesc}}</view>
