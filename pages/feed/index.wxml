@@ -1,11 +1,43 @@
-<view class="page">
+<view class="page feed-page">
   <view wx:if="{{!paired}}" class="empty">
     <view class="empty-title">{{emptyTitle}}</view>
     <view class="empty-desc">{{emptyDesc}}</view>
     <button class="empty-cta" bindtap="goPair">去「我们」完成配对</button>
   </view>
-  <view wx:else class="empty">
-    <view class="empty-title">{{emptyTitle}}</view>
-    <view class="empty-desc">内容即将到来</view>
-  </view>
+
+  <block wx:else>
+    <view wx:if="{{loading && !entries.length}}" class="hint-center">加载中…</view>
+
+    <view wx:elif="{{!entries.length}}" class="empty">
+      <view class="empty-title">还没有见闻</view>
+      <view class="empty-desc">写下你们一起看到的风景与故事</view>
+      <button class="empty-cta" bindtap="goEdit">写一条见闻</button>
+    </view>
+
+    <view wx:else class="timeline">
+      <view
+        class="entry-card"
+        wx:for="{{entries}}"
+        wx:key="_id"
+        data-id="{{item._id}}"
+        bindtap="goDetail"
+      >
+        <view class="entry-title">{{item.title || '无标题'}}</view>
+        <view class="entry-content">{{item.content}}</view>
+        <view class="entry-thumbs" wx:if="{{item.previewImages.length}}">
+          <image
+            wx:for="{{item.previewImages}}"
+            wx:for-item="img"
+            wx:key="*this"
+            class="thumb"
+            src="{{img}}"
+            mode="aspectFill"
+          />
+        </view>
+        <view class="entry-meta">{{item.timeText}}</view>
+      </view>
+    </view>
+
+    <view class="fab" bindtap="goEdit">写</view>
+  </block>
 </view>

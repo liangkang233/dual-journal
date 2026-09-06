@@ -1,1 +1,78 @@
-/* page-specific styles inherit from app.wxss */
+.feed-page {
+  padding-bottom: 160rpx;
+  position: relative;
+}
+
+.hint-center {
+  margin-top: 120rpx;
+  text-align: center;
+  color: #999;
+  font-size: 28rpx;
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.entry-card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 28rpx 32rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+}
+
+.entry-title {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: #222;
+  margin-bottom: 12rpx;
+}
+
+.entry-content {
+  font-size: 28rpx;
+  color: #555;
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+.entry-thumbs {
+  margin-top: 20rpx;
+  display: flex;
+  gap: 12rpx;
+}
+
+.thumb {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 12rpx;
+  background: #eee;
+}
+
+.entry-meta {
+  margin-top: 16rpx;
+  font-size: 24rpx;
+  color: #999;
+}
+
+.fab {
+  position: fixed;
+  right: 40rpx;
+  bottom: calc(40rpx + env(safe-area-inset-bottom));
+  width: 104rpx;
+  height: 104rpx;
+  border-radius: 52rpx;
+  background: #07c160;
+  color: #fff;
+  font-size: 36rpx;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8rpx 24rpx rgba(7, 193, 96, 0.35);
+  z-index: 10;
+}

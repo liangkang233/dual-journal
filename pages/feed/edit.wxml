@@ -1,0 +1,64 @@
+<view class="page edit-page">
+  <view class="card">
+    <view class="label">标题</view>
+    <input
+      class="title-input"
+      placeholder="给这条见闻起个标题"
+      maxlength="40"
+      value="{{title}}"
+      bindinput="onTitleInput"
+    />
+  </view>
+
+  <view class="card">
+    <view class="label">正文</view>
+    <textarea
+      class="content-input"
+      placeholder="写下你们看到的、想到的…"
+      maxlength="2000"
+      value="{{content}}"
+      bindinput="onContentInput"
+      auto-height
+    />
+  </view>
+
+  <view class="card">
+    <view class="label-row">
+      <view class="label">图片</view>
+      <view class="hint-inline">最多 {{maxImages}} 张</view>
+    </view>
+    <view class="image-grid">
+      <view
+        class="image-item"
+        wx:for="{{tempFilePaths}}"
+        wx:key="*this"
+      >
+        <image
+          class="preview"
+          src="{{item}}"
+          mode="aspectFill"
+          data-index="{{index}}"
+          bindtap="onPreviewLocal"
+        />
+        <view class="remove" data-index="{{index}}" catchtap="onRemoveImage">×</view>
+      </view>
+      <view
+        class="image-add"
+        wx:if="{{tempFilePaths.length < maxImages}}"
+        bindtap="onChooseImages"
+      >
+        <text class="plus">+</text>
+        <text class="add-text">添加</text>
+      </view>
+    </view>
+  </view>
+
+  <button
+    class="btn primary submit"
+    loading="{{submitting}}"
+    disabled="{{submitting}}"
+    bindtap="onSubmit"
+  >
+    发布见闻
+  </button>
+</view>
