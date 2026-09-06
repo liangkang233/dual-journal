@@ -1,0 +1,49 @@
+<view class="page edit-page">
+  <view class="card">
+    <view class="label">标题</view>
+    <input
+      class="title-input"
+      placeholder="要做什么？"
+      maxlength="60"
+      value="{{title}}"
+      bindinput="onTitleInput"
+    />
+  </view>
+
+  <view class="card">
+    <view class="label">优先级</view>
+    <view class="priority-options">
+      <view
+        wx:for="{{priorities}}"
+        wx:key="value"
+        class="priority-chip priority-{{item.value}} {{priority === item.value ? 'active' : ''}}"
+        data-value="{{item.value}}"
+        bindtap="onPriorityTap"
+      >
+        <view class="chip-dot"></view>
+        <text>{{item.label}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="label-row">
+      <view class="label">截止日期（可选）</view>
+      <view class="clear-due" wx:if="{{dueDate}}" bindtap="onClearDue">清除</view>
+    </view>
+    <picker mode="date" value="{{dueDate}}" bindchange="onDueChange">
+      <view class="date-picker {{dueDate ? '' : 'placeholder'}}">
+        {{dueDate || '选择日期'}}
+      </view>
+    </picker>
+  </view>
+
+  <button
+    class="btn primary submit"
+    loading="{{submitting}}"
+    disabled="{{submitting}}"
+    bindtap="onSubmit"
+  >
+    {{isEdit ? '保存修改' : '创建待办'}}
+  </button>
+</view>

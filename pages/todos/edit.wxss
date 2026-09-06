@@ -1,0 +1,116 @@
+.edit-page {
+  padding-bottom: 80rpx;
+}
+
+.card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 28rpx 32rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+}
+
+.label {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 16rpx;
+}
+
+.label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.label-row .label {
+  margin-bottom: 0;
+}
+
+.clear-due {
+  font-size: 26rpx;
+  color: #07c160;
+}
+
+.title-input {
+  font-size: 32rpx;
+  padding: 12rpx 0;
+}
+
+.priority-options {
+  display: flex;
+  gap: 20rpx;
+}
+
+.priority-chip {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+  padding: 20rpx 0;
+  border-radius: 16rpx;
+  border: 2rpx solid #e5e5e5;
+  font-size: 28rpx;
+  color: #666;
+  background: #fafafa;
+}
+
+.priority-chip .chip-dot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+}
+
+.priority-chip.priority-high .chip-dot {
+  background: #e64340;
+}
+
+.priority-chip.priority-medium .chip-dot {
+  background: #ff9800;
+}
+
+.priority-chip.priority-low .chip-dot {
+  background: #07c160;
+}
+
+.priority-chip.active {
+  border-color: #07c160;
+  background: #e8f8ef;
+  color: #07c160;
+  font-weight: 600;
+}
+
+.priority-chip.priority-high.active {
+  border-color: #e64340;
+  background: #fdecec;
+  color: #e64340;
+}
+
+.priority-chip.priority-medium.active {
+  border-color: #ff9800;
+  background: #fff5e6;
+  color: #ff9800;
+}
+
+.date-picker {
+  font-size: 30rpx;
+  padding: 16rpx 0;
+  color: #333;
+}
+
+.date-picker.placeholder {
+  color: #bbb;
+}
+
+.btn.primary {
+  background: #07c160;
+  color: #fff;
+  border-radius: 48rpx;
+  font-size: 32rpx;
+}
+
+.submit {
+  margin-top: 16rpx;
+}
