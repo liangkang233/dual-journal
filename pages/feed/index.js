@@ -12,7 +12,7 @@ Page({
     todayBannerText: '',
     emptyTitle: '暂无见闻',
     emptyDesc: '登录后会自动创建个人空间；也可去「我们」邀请对方',
-    bgClass: 'page-bg page-bg-plain',
+    bgClass: 'page-bg page-bg-warm',
     bgStyle: '',
   },
 

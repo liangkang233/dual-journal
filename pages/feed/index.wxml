@@ -1,5 +1,6 @@
 <view class="page feed-page {{bgClass}}" style="{{bgStyle}}">
   <view wx:if="{{!paired}}" class="empty empty-visible">
+    <image class="empty-illust" src="/assets/empty/feed.jpg" mode="aspectFit" />
     <view class="empty-title">{{emptyTitle}}</view>
     <view class="empty-desc">{{emptyDesc}}</view>
     <button class="empty-cta" bindtap="goPair">去「我们」生成邀请 / 加入</button>
@@ -19,6 +20,7 @@
     <view wx:if="{{loading && !entries.length}}" class="hint-center">加载中…</view>
 
     <view wx:elif="{{!entries.length}}" class="empty empty-visible">
+      <image class="empty-illust" src="/assets/empty/feed.jpg" mode="aspectFit" />
       <view class="empty-title">还没有见闻</view>
       <view class="empty-desc">写下时间、地点、人物、起因、经过、结果</view>
       <button class="empty-cta" bindtap="goEdit">写一条见闻</button>

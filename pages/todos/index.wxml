@@ -1,5 +1,6 @@
 <view class="page todos-page {{bgClass}}" style="{{bgStyle}}">
   <view wx:if="{{!paired}}" class="empty empty-visible">
+    <image class="empty-illust" src="/assets/empty/todos.jpg" mode="aspectFit" />
     <view class="empty-title">{{emptyTitle}}</view>
     <view class="empty-desc">{{emptyDesc}}</view>
     <button class="empty-cta" bindtap="goPair">去「我们」生成邀请 / 加入</button>
@@ -9,6 +10,7 @@
     <view wx:if="{{loading && !todos.length}}" class="hint-center">加载中…</view>
 
     <view wx:elif="{{!todos.length}}" class="empty empty-visible">
+      <image class="empty-illust" src="/assets/empty/todos.jpg" mode="aspectFit" />
       <view class="empty-title">还没有待办</view>
       <view class="empty-desc">添加地点、大概时间与截止日，列表会显示倒计时</view>
       <button class="empty-cta" bindtap="goEdit">新建待办</button>

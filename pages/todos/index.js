@@ -13,7 +13,7 @@ Page({
     todos: [],
     emptyTitle: '暂无待办',
     emptyDesc: '登录后会自动创建个人空间，可立即添加待办',
-    bgClass: 'page-bg page-bg-plain',
+    bgClass: 'page-bg page-bg-warm',
     bgStyle: '',
   },
 

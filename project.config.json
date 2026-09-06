@@ -21,6 +21,10 @@
       {
         "type": "suffix",
         "value": ".md"
+      },
+      {
+        "type": "folder",
+        "value": "assets/generated"
       }
     ],
     "include": []

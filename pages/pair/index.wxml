@@ -1,4 +1,5 @@
 <view class="page pair-page {{bgClass}}" style="{{bgStyle}}">
+  <image class="hero-cover" src="/assets/cover/launch.jpg" mode="aspectFill" />
   <view class="section card">
     <view class="section-title">配对状态</view>
     <view class="status-line">{{statusText}}</view>

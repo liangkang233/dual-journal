@@ -42,7 +42,7 @@ function migrate(db) {
       invite_code TEXT,
       invite_expire_at INTEGER,
       invite_active INTEGER NOT NULL DEFAULT 0,
-      background TEXT NOT NULL DEFAULT '{"type":"preset","presetId":"plain"}',
+      background TEXT NOT NULL DEFAULT '{"type":"preset","presetId":"blush"}',
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     );
@@ -142,7 +142,7 @@ function rowToPair(row) {
     inviteCode: row.invite_code || '',
     inviteExpireAt: row.invite_expire_at,
     inviteActive: !!row.invite_active,
-    background: parseJson(row.background, { type: 'preset', presetId: 'plain' }),
+    background: parseJson(row.background, { type: 'preset', presetId: 'blush' }),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }

@@ -3,10 +3,10 @@
  */
 
 const PRESETS = [
-  { id: 'warm', label: '暖阳' },
+  { id: 'warm', label: '暖日' },
   { id: 'mint', label: '薄荷' },
   { id: 'night', label: '夜色' },
-  { id: 'plain', label: '简白' },
+  { id: 'blush', label: '柔粉' },
 ]
 
 const PRESET_IDS = PRESETS.map((p) => p.id)
@@ -26,7 +26,7 @@ function resolveBackground(background) {
       fileId: bg.fileId,
     }
   }
-  const presetId = PRESET_IDS.indexOf(bg.presetId) >= 0 ? bg.presetId : 'plain'
+  const presetId = PRESET_IDS.indexOf(bg.presetId) >= 0 ? bg.presetId : 'warm'
   return {
     bgClass: 'page-bg page-bg-' + presetId,
     bgStyle: '',

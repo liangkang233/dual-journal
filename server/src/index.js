@@ -18,7 +18,7 @@ const CHARSET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
 const INVITE_TTL_MS = 48 * 60 * 60 * 1000
 const MAX_MEMBERS = 2
 const CODE_RE = /^[A-Z0-9]{6}$/
-const PRESET_IDS = ['warm', 'mint', 'night', 'plain']
+const PRESET_IDS = ['warm', 'mint', 'night', 'blush']
 const VALID_PRIORITIES = ['high', 'medium', 'low']
 const VALID_STATUSES = ['open', 'done']
 
@@ -171,7 +171,7 @@ app.post('/api/pairs/ensure-solo', requireAuth, (req, res) => {
   ).run(
     id,
     JSON.stringify([openid]),
-    JSON.stringify({ type: 'preset', presetId: 'plain' }),
+    JSON.stringify({ type: 'preset', presetId: 'blush' }),
     now,
     now
   )
@@ -211,7 +211,7 @@ app.post('/api/pairs/invite', requireAuth, (req, res) => {
     JSON.stringify([openid]),
     inviteCode,
     inviteExpireAt,
-    JSON.stringify({ type: 'preset', presetId: 'plain' }),
+    JSON.stringify({ type: 'preset', presetId: 'blush' }),
     now,
     now
   )

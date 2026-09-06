@@ -10,3 +10,6 @@ project.private.config.json
 config.local.js
 server/data/
 server/uploads/
+
+# Huge raw AI-generated sources (use optimized assets/*)
+assets/generated/

@@ -25,10 +25,10 @@ Page({
     subscribeHint:
       '授权后，纪念日当天尽量推送订阅消息；失败时仍可在应用内看到今日提醒。',
     presets: PRESETS,
-    bgPresetId: 'plain',
+    bgPresetId: 'warm',
     bgType: 'preset',
     bgFileId: '',
-    bgClass: 'page-bg page-bg-plain',
+    bgClass: 'page-bg page-bg-warm',
     bgStyle: '',
     bgSaving: false,
   },
@@ -52,14 +52,15 @@ Page({
     return {
       title: code ? '邀请你加入双人见闻，码：' + code : '一起来用双人见闻',
       path: path,
+      imageUrl: '/assets/cover/share.jpg',
     }
   },
 
   applyBgFromPair(pair) {
-    const bg = (pair && pair.background) || { type: 'preset', presetId: 'plain' }
+    const bg = (pair && pair.background) || { type: 'preset', presetId: 'warm' }
     return applyPairBackground(this, {
       bgType: bg.type || 'preset',
-      bgPresetId: bg.presetId || (bg.type === 'custom' ? '' : 'plain'),
+      bgPresetId: bg.presetId || (bg.type === 'custom' ? '' : 'warm'),
       bgFileId: bg.fileId || '',
     })
   },
@@ -84,9 +85,9 @@ Page({
               statusText: '尚未配对，可生成邀请码或输入对方的码加入',
               subscribeAuthorized: false,
               bgType: 'preset',
-              bgPresetId: 'plain',
+              bgPresetId: 'warm',
               bgFileId: '',
-              bgClass: 'page-bg page-bg-plain',
+              bgClass: 'page-bg page-bg-warm',
               bgStyle: '',
             })
             return

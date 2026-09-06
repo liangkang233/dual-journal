@@ -73,7 +73,7 @@ exports.main = async () => {
         inviteCode,
         inviteExpireAt,
         inviteActive: true,
-        background: { type: 'preset', presetId: 'plain' },
+        background: { type: 'preset', presetId: 'warm' },
         createdAt: now,
         updatedAt: now,
       },

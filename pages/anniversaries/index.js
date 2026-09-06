@@ -11,7 +11,7 @@ Page({
     todayList: [],
     emptyTitle: '暂无纪念日',
     emptyDesc: '登录后会自动创建个人空间；也可邀请对方一起记录',
-    bgClass: 'page-bg page-bg-plain',
+    bgClass: 'page-bg page-bg-warm',
     bgStyle: '',
   },
 
