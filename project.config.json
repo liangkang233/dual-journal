@@ -21,18 +21,6 @@
       {
         "type": "suffix",
         "value": ".md"
-      },
-      {
-        "type": "file",
-        "value": "config.example.js"
-      },
-      {
-        "type": "file",
-        "value": "package.json"
-      },
-      {
-        "type": "file",
-        "value": "package-lock.json"
       }
     ],
     "include": []

@@ -1,1 +1,51 @@
-<view style="padding:48rpx;background:#e3f2fd;min-height:70vh;color:#111;font-size:36rpx;">{{msg}}</view>
+<view class="page ann-page {{bgClass}}" style="{{bgStyle}}">
+  <view wx:if="{{!paired}}" class="empty empty-visible">
+    <view class="empty-title">{{emptyTitle}}</view>
+    <view class="empty-desc">{{emptyDesc}}</view>
+    <button class="empty-cta" bindtap="goPair">去「我们」生成邀请 / 加入</button>
+  </view>
+
+  <block wx:else>
+    <view class="today-banner" wx:if="{{todayList.length}}">
+      <view class="today-banner-title">今日纪念</view>
+      <view class="today-banner-items">
+        <text wx:for="{{todayList}}" wx:key="_id" class="today-chip">{{item.title}}</text>
+      </view>
+    </view>
+
+    <view wx:if="{{loading && !list.length}}" class="hint-center">加载中…</view>
+
+    <view wx:elif="{{!list.length}}" class="empty empty-visible">
+      <view class="empty-title">还没有纪念日</view>
+      <view class="empty-desc">记下相遇、在一起或任何想纪念的日子</view>
+      <button class="empty-cta" bindtap="goEdit">新建纪念日</button>
+    </view>
+
+    <view wx:else class="ann-list">
+      <view
+        class="ann-card {{item.isToday ? 'is-today' : ''}}"
+        wx:for="{{list}}"
+        wx:key="_id"
+      >
+        <view class="ann-main" data-id="{{item._id}}" bindtap="goEdit">
+          <view class="ann-row">
+            <view class="ann-title">{{item.title}}</view>
+            <view class="today-tag" wx:if="{{item.isToday}}">今天</view>
+          </view>
+          <view class="ann-meta">
+            <text>{{item.dateLabel}}</text>
+            <text class="dot">·</text>
+            <text>{{item.repeatLabel}}</text>
+          </view>
+        </view>
+        <view
+          class="ann-del"
+          data-id="{{item._id}}"
+          catchtap="onDelete"
+        >删除</view>
+      </view>
+    </view>
+
+    <view class="fab" bindtap="goEdit">+</view>
+  </block>
+</view>

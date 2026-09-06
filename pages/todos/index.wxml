@@ -1,1 +1,57 @@
-<view style="padding:48rpx;background:#e3f2fd;min-height:70vh;color:#111;font-size:36rpx;">{{msg}}</view>
+<view class="page todos-page {{bgClass}}" style="{{bgStyle}}">
+  <view wx:if="{{!paired}}" class="empty empty-visible">
+    <view class="empty-title">{{emptyTitle}}</view>
+    <view class="empty-desc">{{emptyDesc}}</view>
+    <button class="empty-cta" bindtap="goPair">去「我们」生成邀请 / 加入</button>
+  </view>
+
+  <block wx:else>
+    <view wx:if="{{loading && !todos.length}}" class="hint-center">加载中…</view>
+
+    <view wx:elif="{{!todos.length}}" class="empty empty-visible">
+      <view class="empty-title">还没有待办</view>
+      <view class="empty-desc">添加地点、大概时间与截止日，列表会显示倒计时</view>
+      <button class="empty-cta" bindtap="goEdit">新建待办</button>
+    </view>
+
+    <view wx:else class="todo-list">
+      <view
+        class="todo-card {{item.done ? 'is-done' : ''}}"
+        wx:for="{{todos}}"
+        wx:key="_id"
+      >
+        <view
+          class="check"
+          data-id="{{item._id}}"
+          data-done="{{item.done}}"
+          catchtap="onToggle"
+        >
+          <view class="check-box {{item.done ? 'checked' : ''}}">
+            <text wx:if="{{item.done}}">✓</text>
+          </view>
+        </view>
+
+        <view class="todo-main" data-id="{{item._id}}" bindtap="goEdit">
+          <view class="todo-row">
+            <view class="priority-dot priority-{{item.priority}}"></view>
+            <view class="todo-title">{{item.title}}</view>
+            <view class="priority-tag">{{item.priorityLabel}}</view>
+          </view>
+          <view class="todo-fields" wx:if="{{item.fieldLine}}">{{item.fieldLine}}</view>
+          <view class="todo-due" wx:if="{{item.dueText || item.countdownText}}">
+            <text wx:if="{{item.dueText}}">截止 {{item.dueText}}</text>
+            <text wx:if="{{item.countdownText}}" class="countdown"> · {{item.countdownText}}</text>
+          </view>
+        </view>
+
+        <view
+          class="todo-del"
+          data-id="{{item._id}}"
+          catchtap="onDelete"
+        >删除</view>
+      </view>
+    </view>
+
+    <view class="fab" bindtap="goEdit">+</view>
+  </block>
+</view>
