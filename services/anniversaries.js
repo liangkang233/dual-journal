@@ -1,4 +1,8 @@
 /**
- * Anniversaries facade — delegates to cloud or http adapter via config.dataBackend
+ * anniversaries facade — static require (WeChat miniprogram forbids dynamic require)
  */
-module.exports = require('../adapters').loadAdapter('anniversaries')
+const config = require('../config/index')
+const cloud = require('../adapters/cloud/anniversaries')
+const http = require('../adapters/http/anniversaries')
+
+module.exports = config.dataBackend === 'http' ? http : cloud

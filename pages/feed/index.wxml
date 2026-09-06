@@ -1,26 +1,23 @@
-<view class="page feed-page {{bgClass}}" style="{{bgStyle}}">
+<view class="page feed-page">
+  <view class="debug-bar">见闻 · 可增删改</view>
+
   <view wx:if="{{!paired}}" class="empty empty-visible">
     <view class="empty-title">{{emptyTitle}}</view>
     <view class="empty-desc">{{emptyDesc}}</view>
-    <button class="empty-cta" bindtap="goPair">去「我们」生成邀请 / 加入</button>
+    <button class="empty-cta" bindtap="goPair">去「我们」/ 等待自动创建空间</button>
+    <button class="empty-cta secondary" bindtap="retryBoot">重新登录并创建空间</button>
   </view>
 
   <block wx:else>
-    <view
-      class="today-banner"
-      wx:if="{{todayBannerText}}"
-      bindtap="goAnniversaries"
-    >
-      <view class="today-banner-icon">🎉</view>
+    <view class="today-banner" wx:if="{{todayBannerText}}" bindtap="goAnniversaries">
       <view class="today-banner-text">{{todayBannerText}}</view>
-      <view class="today-banner-more">查看</view>
     </view>
 
     <view wx:if="{{loading && !entries.length}}" class="hint-center">加载中…</view>
 
     <view wx:elif="{{!entries.length}}" class="empty empty-visible">
       <view class="empty-title">还没有见闻</view>
-      <view class="empty-desc">写下时间、地点、人物、起因、经过、结果</view>
+      <view class="empty-desc">填写时间、地点、人物、起因、经过、结果</view>
       <button class="empty-cta" bindtap="goEdit">写一条见闻</button>
     </view>
 
@@ -36,16 +33,6 @@
         <view class="entry-fields" wx:if="{{item.fieldLine}}">{{item.fieldLine}}</view>
         <view class="entry-content">{{item.processPreview}}</view>
         <view class="entry-result" wx:if="{{item.resultPreview}}">结果：{{item.resultPreview}}</view>
-        <view class="entry-thumbs" wx:if="{{item.previewImages.length}}">
-          <image
-            wx:for="{{item.previewImages}}"
-            wx:for-item="img"
-            wx:key="*this"
-            class="thumb"
-            src="{{img}}"
-            mode="aspectFill"
-          />
-        </view>
         <view class="entry-meta">{{item.timeText}}</view>
       </view>
     </view>

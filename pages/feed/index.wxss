@@ -136,3 +136,15 @@
   color: #fff !important;
   border: 2rpx solid #05964a;
 }
+
+.debug-bar {
+  background: #111;
+  color: #fff;
+  padding: 16rpx 24rpx;
+  font-size: 26rpx;
+  margin: -48rpx -40rpx 24rpx;
+}
+.secondary {
+  margin-top: 16rpx;
+  background: #333 !important;
+}

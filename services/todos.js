@@ -1,4 +1,8 @@
 /**
- * Todos facade — delegates to cloud or http adapter via config.dataBackend
+ * todos facade — static require (WeChat miniprogram forbids dynamic require)
  */
-module.exports = require('../adapters').loadAdapter('todos')
+const config = require('../config/index')
+const cloud = require('../adapters/cloud/todos')
+const http = require('../adapters/http/todos')
+
+module.exports = config.dataBackend === 'http' ? http : cloud

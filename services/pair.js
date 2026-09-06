@@ -1,4 +1,8 @@
 /**
- * Pair facade — delegates to cloud or http adapter via config.dataBackend
+ * pair facade — static require (WeChat miniprogram forbids dynamic require)
  */
-module.exports = require('../adapters').loadAdapter('pair')
+const config = require('../config/index')
+const cloud = require('../adapters/cloud/pair')
+const http = require('../adapters/http/pair')
+
+module.exports = config.dataBackend === 'http' ? http : cloud

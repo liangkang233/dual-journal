@@ -96,6 +96,27 @@ Page({
     wx.switchTab({ url: '/pages/pair/index' })
   },
 
+  retryBoot() {
+    const boot = app.ensureLogin ? app.ensureLogin() : Promise.resolve()
+    wx.showLoading({ title: '创建中' })
+    boot
+      .then(() => {
+        wx.hideLoading()
+        const paired = !!(app.globalData && app.globalData.pairId)
+        this.setData({ paired })
+        if (paired) {
+          this.loadEntries()
+          this.loadTodayAnns()
+        } else {
+          wx.showToast({ title: '仍未创建成功，看控制台', icon: 'none' })
+        }
+      })
+      .catch((e) => {
+        wx.hideLoading()
+        wx.showToast({ title: (e && e.message) || '失败', icon: 'none' })
+      })
+  },
+
   goAnniversaries() {
     wx.switchTab({ url: '/pages/anniversaries/index' })
   },

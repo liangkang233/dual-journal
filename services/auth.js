@@ -1,4 +1,8 @@
 /**
- * Auth facade — delegates to cloud or http adapter via config.dataBackend
+ * auth facade — static require (WeChat miniprogram forbids dynamic require)
  */
-module.exports = require('../adapters').loadAdapter('auth')
+const config = require('../config/index')
+const cloud = require('../adapters/cloud/auth')
+const http = require('../adapters/http/auth')
+
+module.exports = config.dataBackend === 'http' ? http : cloud
