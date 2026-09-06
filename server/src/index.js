@@ -33,6 +33,12 @@ app.use(cors())
 app.use(express.json({ limit: '2mb' }))
 app.use('/uploads', express.static(UPLOAD_DIR))
 
+const PUBLIC_DIR = path.join(__dirname, '..', 'public')
+app.use(express.static(PUBLIC_DIR))
+app.get('/admin', (_req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, 'admin.html'))
+})
+
 const storage = multer.diskStorage({
   destination(_req, _file, cb) {
     cb(null, UPLOAD_DIR)

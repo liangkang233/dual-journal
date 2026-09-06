@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>双人日记 · 管理测试台</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: sans-serif; color: #000; background: #fff; margin: 16px; line-height: 1.4; }
+  h1 { font-size: 22px; margin: 0 0 8px; }
+  h2 { font-size: 18px; margin: 24px 0 8px; border-bottom: 2px solid #000; padding-bottom: 4px; }
+  .meta { margin-bottom: 12px; padding: 8px; border: 1px solid #000; }
+  .meta code { background: #eee; padding: 2px 4px; }
+  .err { color: #900; white-space: pre-wrap; margin: 8px 0; }
+  .ok { color: #060; }
+  label { display: inline-block; min-width: 72px; }
+  input, select, textarea, button { font: inherit; margin: 2px 4px 2px 0; }
+  input[type="text"], input[type="datetime-local"], input[type="date"], textarea, select {
+    border: 1px solid #000; padding: 4px; background: #fff; color: #000;
+  }
+  textarea { width: 100%; max-width: 520px; height: 48px; vertical-align: top; }
+  button { border: 1px solid #000; background: #eee; color: #000; padding: 4px 10px; cursor: pointer; }
+  button:hover { background: #ddd; }
+  .row { margin: 4px 0; }
+  .form-block { border: 1px solid #999; padding: 10px; margin-bottom: 12px; max-width: 640px; }
+  ul.list { list-style: none; padding: 0; margin: 0; }
+  ul.list li { border: 1px solid #ccc; padding: 8px; margin: 6px 0; }
+  ul.list li.done { opacity: 0.65; text-decoration: line-through; }
+  .muted { color: #444; font-size: 13px; }
+  .actions { margin-top: 6px; }
+  .countdown { font-weight: bold; }
+  .countdown.overdue { color: #900; }
+</style>
+</head>
+<body>
+<h1>双人日记 · 管理测试台</h1>
+<p class="muted">绕过微信 DevTools，用浏览器直接测 见闻 / 待办 / 纪念 CRUD。</p>
+<div class="meta" id="meta">
+  状态：初始化中…
+</div>
+<div id="globalErr" class="err"></div>
+
+<section>
+  <h2>见闻</h2>
+  <div class="form-block">
+    <div class="row"><label>标题</label><input type="text" id="e-title" placeholder="标题" /></div>
+    <div class="row"><label>时间</label><input type="text" id="e-timeAt" placeholder="时间" /></div>
+    <div class="row"><label>地点</label><input type="text" id="e-location" placeholder="地点" /></div>
+    <div class="row"><label>人物</label><input type="text" id="e-people" placeholder="人物" /></div>
+    <div class="row"><label>起因</label><input type="text" id="e-cause" placeholder="起因" /></div>
+    <div class="row"><label>经过</label><textarea id="e-process" placeholder="经过"></textarea></div>
+    <div class="row"><label>结果</label><input type="text" id="e-result" placeholder="结果" /></div>
+    <button type="button" id="e-create">创建见闻</button>
+  </div>
+  <ul class="list" id="e-list"></ul>
+</section>
+
+<section>
+  <h2>待办</h2>
+  <div class="form-block">
+    <div class="row"><label>标题</label><input type="text" id="t-title" placeholder="标题（必填）" /></div>
+    <div class="row">
+      <label>优先级</label>
+      <select id="t-priority">
+        <option value="high">高</option>
+        <option value="medium" selected>中</option>
+        <option value="low">低</option>
+      </select>
+    </div>
+    <div class="row"><label>大概时间</label><input type="text" id="t-approxTime" placeholder="approxTime" /></div>
+    <div class="row"><label>地点</label><input type="text" id="t-location" placeholder="地点" /></div>
+    <div class="row"><label>截止</label><input type="datetime-local" id="t-dueAt" /></div>
+    <div class="row"><label>时间</label><input type="text" id="t-timeAt" placeholder="时间（六要素）" /></div>
+    <div class="row"><label>人物</label><input type="text" id="t-people" placeholder="人物" /></div>
+    <div class="row"><label>起因</label><input type="text" id="t-cause" placeholder="起因" /></div>
+    <div class="row"><label>经过</label><textarea id="t-process" placeholder="经过"></textarea></div>
+    <div class="row"><label>结果</label><input type="text" id="t-result" placeholder="结果" /></div>
+    <button type="button" id="t-create">创建待办</button>
+  </div>
+  <ul class="list" id="t-list"></ul>
+</section>
+
+<section>
+  <h2>纪念</h2>
+  <div class="form-block">
+    <div class="row"><label>标题</label><input type="text" id="a-title" placeholder="标题（必填）" /></div>
+    <div class="row"><label>日期</label><input type="date" id="a-date" /></div>
+    <div class="row"><label>每年重复</label><input type="checkbox" id="a-repeat" /></div>
+    <button type="button" id="a-create">创建纪念</button>
+  </div>
+  <ul class="list" id="a-list"></ul>
+</section>
+
+<script>
+(function () {
+  var OPENID_KEY = 'admin_openid';
+  var state = { openid: '', pairId: '' };
+  var countdownTimer = null;
+
+  function $(id) { return document.getElementById(id); }
+
+  function setErr(msg) {
+    $('globalErr').textContent = msg || '';
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function api(method, path, body) {
+    var headers = { 'Content-Type': 'application/json' };
+    if (state.openid) headers['x-openid'] = state.openid;
+    var opts = { method: method, headers: headers };
+    if (body != null) opts.body = JSON.stringify(body);
+    return fetch(path, opts).then(function (res) {
+      return res.text().then(function (text) {
+        var data = null;
+        try { data = text ? JSON.parse(text) : null; } catch (e) { data = { raw: text }; }
+        if (!res.ok) {
+          var err = (data && data.error) || text || ('HTTP ' + res.status);
+          throw new Error(err);
+        }
+        return data;
+      });
+    });
+  }
+
+  function updateMeta() {
+    $('meta').innerHTML =
+      'openid: <code>' + escapeHtml(state.openid) + '</code><br/>' +
+      'pairId: <code>' + escapeHtml(state.pairId) + '</code>';
+  }
+
+  function formatCountdown(dueAt) {
+    if (dueAt == null || dueAt === '') return '无截止';
+    var ms = Number(dueAt) - Date.now();
+    var overdue = ms < 0;
+    var abs = Math.abs(ms);
+    var sec = Math.floor(abs / 1000);
+    var d = Math.floor(sec / 86400);
+    var h = Math.floor((sec % 86400) / 3600);
+    var m = Math.floor((sec % 3600) / 60);
+    var s = sec % 60;
+    var parts = [];
+    if (d) parts.push(d + '天');
+    parts.push(h + '时' + m + '分' + s + '秒');
+    var label = (overdue ? '已过期 ' : '剩余 ') + parts.join(' ');
+    return { label: label, overdue: overdue };
+  }
+
+  function val(id) { return $(id).value.trim(); }
+
+  // --- Entries ---
+  function loadEntries() {
+    return api('GET', '/api/entries?pairId=' + encodeURIComponent(state.pairId)).then(function (list) {
+      var ul = $('e-list');
+      ul.innerHTML = '';
+      if (!list || !list.length) {
+        ul.innerHTML = '<li class="muted">暂无见闻</li>';
+        return;
+      }
+      list.forEach(function (e) {
+        var li = document.createElement('li');
+        li.innerHTML =
+          '<strong>' + escapeHtml(e.title || '(无标题)') + '</strong>' +
+          '<div class="muted">时间:' + escapeHtml(e.timeAt) +
+          ' | 地点:' + escapeHtml(e.location) +
+          ' | 人物:' + escapeHtml(e.people) + '</div>' +
+          '<div class="muted">起因:' + escapeHtml(e.cause) +
+          ' | 经过:' + escapeHtml(e.process) +
+          ' | 结果:' + escapeHtml(e.result) + '</div>' +
+          '<div class="actions"><button data-id="' + escapeHtml(e._id) + '" class="e-del">删除</button></div>';
+        ul.appendChild(li);
+      });
+      ul.querySelectorAll('.e-del').forEach(function (btn) {
+        btn.onclick = function () {
+          if (!confirm('删除此见闻？')) return;
+          api('DELETE', '/api/entries/' + btn.getAttribute('data-id'))
+            .then(loadEntries)
+            .catch(function (err) { setErr(err.message); });
+        };
+      });
+    });
+  }
+
+  $('e-create').onclick = function () {
+    setErr('');
+    var body = {
+      pairId: state.pairId,
+      title: val('e-title'),
+      timeAt: val('e-timeAt'),
+      location: val('e-location'),
+      people: val('e-people'),
+      cause: val('e-cause'),
+      process: val('e-process'),
+      result: val('e-result'),
+      content: val('e-process')
+    };
+    api('POST', '/api/entries', body)
+      .then(function () {
+        ['e-title','e-timeAt','e-location','e-people','e-cause','e-process','e-result'].forEach(function (id) { $(id).value = ''; });
+        return loadEntries();
+      })
+      .catch(function (err) { setErr(err.message); });
+  };
+
+  // --- Todos ---
+  function renderTodos(list) {
+    var ul = $('t-list');
+    ul.innerHTML = '';
+    if (!list || !list.length) {
+      ul.innerHTML = '<li class="muted">暂无待办</li>';
+      return;
+    }
+    list.forEach(function (t) {
+      var li = document.createElement('li');
+      if (t.status === 'done') li.className = 'done';
+      var cd = formatCountdown(t.dueAt);
+      var cdHtml = typeof cd === 'string'
+        ? '<span class="countdown">' + escapeHtml(cd) + '</span>'
+        : '<span class="countdown' + (cd.overdue ? ' overdue' : '') + '">' + escapeHtml(cd.label) + '</span>';
+      li.innerHTML =
+        '<strong>' + escapeHtml(t.title) + '</strong> [' + escapeHtml(t.priority) + '] ' +
+        '<span class="muted">状态:' + escapeHtml(t.status) + '</span><br/>' +
+        cdHtml +
+        '<div class="muted">大概时间:' + escapeHtml(t.approxTime) +
+        ' | 地点:' + escapeHtml(t.location) + '</div>' +
+        '<div class="muted">六要素 时间:' + escapeHtml(t.timeAt) +
+        ' 人物:' + escapeHtml(t.people) +
+        ' 起因:' + escapeHtml(t.cause) +
+        ' 经过:' + escapeHtml(t.process) +
+        ' 结果:' + escapeHtml(t.result) + '</div>' +
+        '<div class="actions">' +
+        '<button data-id="' + escapeHtml(t._id) + '" data-status="' + escapeHtml(t.status) + '" class="t-toggle">' +
+        (t.status === 'done' ? '标为未完成' : '标为完成') + '</button> ' +
+        '<button data-id="' + escapeHtml(t._id) + '" class="t-del">删除</button></div>';
+      ul.appendChild(li);
+    });
+    ul.querySelectorAll('.t-del').forEach(function (btn) {
+      btn.onclick = function () {
+        if (!confirm('删除此待办？')) return;
+        api('DELETE', '/api/todos/' + btn.getAttribute('data-id'))
+          .then(loadTodos)
+          .catch(function (err) { setErr(err.message); });
+      };
+    });
+    ul.querySelectorAll('.t-toggle').forEach(function (btn) {
+      btn.onclick = function () {
+        var cur = btn.getAttribute('data-status');
+        var next = cur === 'done' ? 'open' : 'done';
+        api('PATCH', '/api/todos/' + btn.getAttribute('data-id') + '/status', { status: next })
+          .then(loadTodos)
+          .catch(function (err) { setErr(err.message); });
+      };
+    });
+  }
+
+  var todosCache = [];
+
+  function loadTodos() {
+    return api('GET', '/api/todos?pairId=' + encodeURIComponent(state.pairId)).then(function (list) {
+      todosCache = list || [];
+      renderTodos(todosCache);
+    });
+  }
+
+  function startCountdownTick() {
+    if (countdownTimer) clearInterval(countdownTimer);
+    countdownTimer = setInterval(function () {
+      if (todosCache && todosCache.length) renderTodos(todosCache);
+    }, 1000);
+  }
+
+  $('t-create').onclick = function () {
+    setErr('');
+    var dueRaw = $('t-dueAt').value;
+    var dueAt = dueRaw ? new Date(dueRaw).getTime() : null;
+    if (dueRaw && Number.isNaN(dueAt)) {
+      setErr('截止时间无效');
+      return;
+    }
+    var body = {
+      pairId: state.pairId,
+      title: val('t-title'),
+      priority: $('t-priority').value,
+      approxTime: val('t-approxTime'),
+      location: val('t-location'),
+      dueAt: dueAt,
+      timeAt: val('t-timeAt'),
+      people: val('t-people'),
+      cause: val('t-cause'),
+      process: val('t-process'),
+      result: val('t-result')
+    };
+    api('POST', '/api/todos', body)
+      .then(function () {
+        ['t-title','t-approxTime','t-location','t-dueAt','t-timeAt','t-people','t-cause','t-process','t-result'].forEach(function (id) { $(id).value = ''; });
+        $('t-priority').value = 'medium';
+        return loadTodos();
+      })
+      .catch(function (err) { setErr(err.message); });
+  };
+
+  // --- Anniversaries ---
+  function loadAnniversaries() {
+    return api('GET', '/api/anniversaries?pairId=' + encodeURIComponent(state.pairId)).then(function (list) {
+      var ul = $('a-list');
+      ul.innerHTML = '';
+      if (!list || !list.length) {
+        ul.innerHTML = '<li class="muted">暂无纪念</li>';
+        return;
+      }
+      list.forEach(function (a) {
+        var li = document.createElement('li');
+        li.innerHTML =
+          '<strong>' + escapeHtml(a.title) + '</strong> ' +
+          escapeHtml(a.date) +
+          (a.repeatYearly ? ' · 每年重复' : '') +
+          '<div class="actions"><button data-id="' + escapeHtml(a._id) + '" class="a-del">删除</button></div>';
+        ul.appendChild(li);
+      });
+      ul.querySelectorAll('.a-del').forEach(function (btn) {
+        btn.onclick = function () {
+          if (!confirm('删除此纪念？')) return;
+          api('DELETE', '/api/anniversaries/' + btn.getAttribute('data-id'))
+            .then(loadAnniversaries)
+            .catch(function (err) { setErr(err.message); });
+        };
+      });
+    });
+  }
+
+  $('a-create').onclick = function () {
+    setErr('');
+    var body = {
+      pairId: state.pairId,
+      title: val('a-title'),
+      date: val('a-date'),
+      repeatYearly: $('a-repeat').checked
+    };
+    api('POST', '/api/anniversaries', body)
+      .then(function () {
+        $('a-title').value = '';
+        $('a-date').value = '';
+        $('a-repeat').checked = false;
+        return loadAnniversaries();
+      })
+      .catch(function (err) { setErr(err.message); });
+  };
+
+  function boot() {
+    setErr('');
+    var stored = '';
+    try { stored = localStorage.getItem(OPENID_KEY) || ''; } catch (e) {}
+    var loginBody = stored ? { openid: stored } : {};
+    return api('POST', '/api/auth/login', loginBody)
+      .then(function (data) {
+        state.openid = data.openid;
+        try { localStorage.setItem(OPENID_KEY, state.openid); } catch (e) {}
+        return api('POST', '/api/pairs/ensure-solo', {});
+      })
+      .then(function (pair) {
+        state.pairId = pair && (pair._id || pair.pairId) || '';
+        updateMeta();
+        return Promise.all([loadEntries(), loadTodos(), loadAnniversaries()]);
+      })
+      .then(function () {
+        startCountdownTick();
+      })
+      .catch(function (err) {
+        setErr('初始化失败: ' + err.message);
+        updateMeta();
+      });
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>
