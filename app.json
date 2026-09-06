@@ -1,0 +1,49 @@
+{
+  "pages": [
+    "pages/feed/index",
+    "pages/todos/index",
+    "pages/anniversaries/index",
+    "pages/pair/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "双人见闻",
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f5f5f5"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#07c160",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/feed/index",
+        "text": "见闻",
+        "iconPath": "assets/tab/feed.png",
+        "selectedIconPath": "assets/tab/feed-active.png"
+      },
+      {
+        "pagePath": "pages/todos/index",
+        "text": "待办",
+        "iconPath": "assets/tab/todos.png",
+        "selectedIconPath": "assets/tab/todos-active.png"
+      },
+      {
+        "pagePath": "pages/anniversaries/index",
+        "text": "纪念",
+        "iconPath": "assets/tab/anniversaries.png",
+        "selectedIconPath": "assets/tab/anniversaries-active.png"
+      },
+      {
+        "pagePath": "pages/pair/index",
+        "text": "我们",
+        "iconPath": "assets/tab/pair.png",
+        "selectedIconPath": "assets/tab/pair-active.png"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

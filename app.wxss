@@ -1,0 +1,43 @@
+page {
+  background: #f5f5f5;
+  color: #111;
+  font-size: 32rpx;
+  box-sizing: border-box;
+}
+
+.page {
+  min-height: 100vh;
+  padding: 48rpx 40rpx;
+  box-sizing: border-box;
+}
+
+.empty {
+  margin-top: 160rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24rpx;
+  text-align: center;
+}
+
+.empty-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.empty-desc {
+  font-size: 28rpx;
+  color: #888;
+  line-height: 1.6;
+  max-width: 520rpx;
+}
+
+.empty-cta {
+  margin-top: 32rpx;
+  background: #07c160;
+  color: #fff;
+  font-size: 30rpx;
+  padding: 16rpx 48rpx;
+  border-radius: 48rpx;
+}

@@ -1,0 +1,11 @@
+<view class="page">
+  <view wx:if="{{!paired}}" class="empty">
+    <view class="empty-title">{{emptyTitle}}</view>
+    <view class="empty-desc">{{emptyDesc}}</view>
+    <button class="empty-cta" bindtap="goPair">去「我们」完成配对</button>
+  </view>
+  <view wx:else class="empty">
+    <view class="empty-title">{{emptyTitle}}</view>
+    <view class="empty-desc">内容即将到来</view>
+  </view>
+</view>
