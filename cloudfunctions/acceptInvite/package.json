@@ -1,0 +1,9 @@
+{
+  "name": "acceptInvite",
+  "version": "1.0.0",
+  "description": "Accept invite code and join pair",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

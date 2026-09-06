@@ -1,4 +1,6 @@
 const CLOUD_ENV_ID = 'CLOUD_ENV_ID' // 开通云开发后替换为真实环境 ID
+const auth = require('./services/auth')
+const pairService = require('./services/pair')
 
 App({
   globalData: {
@@ -16,12 +18,16 @@ App({
       env: CLOUD_ENV_ID,
       traceUser: true,
     })
-    this.loginPlaceholder()
+    this.ensureLogin()
   },
 
-  /** 登录占位：后续 Task 3 接 login 云函数 */
-  loginPlaceholder() {
-    // TODO(Task 3): wx.cloud.callFunction({ name: 'login' })
-    console.log('[app] cloud inited, login placeholder (env=%s)', CLOUD_ENV_ID)
+  /** 登录并尝试拉取已有配对 */
+  ensureLogin() {
+    return auth
+      .login()
+      .then(() => pairService.getMyPair())
+      .catch((err) => {
+        console.error('[app] login/pair init failed', err)
+      })
   },
 })

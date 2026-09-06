@@ -52,5 +52,6 @@
   "projectname": "hello-share",
   "condition": {},
   "simulatorPluginLibVersion": {},
-  "editorSetting": {}
+  "editorSetting": {},
+  "cloudfunctionRoot": "cloudfunctions/"
 }
