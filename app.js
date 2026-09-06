@@ -13,6 +13,12 @@ App({
   },
 
   onLaunch() {
+    try {
+      // 真机调试可见 vConsole；正式体验版可再关掉
+      if (wx.setEnableDebug) {
+        wx.setEnableDebug({ enableDebug: true })
+      }
+    } catch (e) {}
     if (config.dataBackend === 'cloud') {
       if (!wx.cloud) {
         console.error('请使用 2.2.3 或以上的基础库以使用云能力')

@@ -10,6 +10,14 @@ const {
 const SUBSCRIBE_TMPL_ID = 'SUBSCRIBE_TMPL_ID'
 
 
+
+function pushDebug(page, line) {
+  const stamp = new Date().toISOString().slice(11, 19)
+  const rows = (page.data.debugLines || []).slice()
+  rows.unshift('[' + stamp + '] ' + line)
+  page.setData({ debugLines: rows.slice(0, 30) })
+}
+
 function formatCloudErr(err) {
   if (!err) return '操作失败'
   const code = err.errCode || err.code
@@ -43,6 +51,11 @@ Page({
     bgClass: 'page-bg page-bg-warm',
     bgStyle: '',
     bgSaving: false,
+    showDebug: true,
+    debugLines: [],
+    lastError: '',
+    cloudEnvId: '',
+    dataBackend: '',
   },
 
   onLoad(options) {
@@ -53,8 +66,65 @@ Page({
   },
 
   onShow() {
+    const cfg = require('../../config/index')
+    this.setData({
+      cloudEnvId: cfg.cloudEnvId || '',
+      dataBackend: cfg.dataBackend || '',
+    })
+    pushDebug(this, 'onShow backend=' + (cfg.dataBackend || '') + ' env=' + (cfg.cloudEnvId || ''))
     this.refresh()
   },
+
+  onToggleDebug() {
+    this.setData({ showDebug: !this.data.showDebug })
+  },
+
+  onCopyDebug() {
+    const text = [
+      'backend=' + this.data.dataBackend,
+      'env=' + this.data.cloudEnvId,
+      'openid=' + this.data.openid,
+      'pairId=' + ((getApp().globalData && getApp().globalData.pairId) || ''),
+      'hasPair=' + this.data.hasPair,
+      'memberCount=' + this.data.memberCount,
+      'invite=' + this.data.inviteCode,
+      'lastError=' + this.data.lastError,
+      '',
+      (this.data.debugLines || []).join('\n'),
+    ].join('\n')
+    wx.setClipboardData({ data: text })
+  },
+
+  onProbeCloud() {
+    const page = this
+    pushDebug(page, 'probe: start')
+    const hasCloud = !!(wx.cloud)
+    pushDebug(page, 'wx.cloud=' + hasCloud)
+    if (!hasCloud) {
+      page.setData({ lastError: '基础库无云能力' })
+      return
+    }
+    const db = wx.cloud.database()
+    db.collection('pairs')
+      .limit(1)
+      .get()
+      .then((res) => {
+        pushDebug(page, 'db.pairs.get ok count=' + ((res.data && res.data.length) || 0))
+        return wx.cloud.callFunction({ name: 'login' })
+      })
+      .then((res) => {
+        const oid = res && res.result && res.result.openid
+        pushDebug(page, 'callFunction login ok openid=' + (oid || ''))
+        wx.showToast({ title: '云探测成功', icon: 'success' })
+      })
+      .catch((err) => {
+        const msg = formatCloudErr(err)
+        page.setData({ lastError: msg })
+        pushDebug(page, 'probe fail: ' + msg + ' code=' + (err.errCode || err.code || ''))
+        wx.showToast({ title: msg.slice(0, 20), icon: 'none' })
+      })
+  },
+
 
   onShareAppMessage() {
     const code = this.data.inviteCode
@@ -213,12 +283,16 @@ Page({
           generating: false,
           statusText: '邀请码已生成，48 小时内有效，可分享给对方',
         })
+        pushDebug(this, 'createInvite ok code=' + res.inviteCode)
         wx.showToast({ title: '已生成邀请码', icon: 'success' })
         return pairService.getMyPair()
       })
       .catch((err) => {
         this.setData({ generating: false })
-        wx.showToast({ title: formatCloudErr(err) || '生成失败', icon: 'none' })
+        const msg = formatCloudErr(err) || '生成失败'
+        this.setData({ lastError: msg })
+        pushDebug(this, 'createInvite fail: ' + msg)
+        wx.showToast({ title: msg.slice(0, 40), icon: 'none' })
       })
   },
 
@@ -239,7 +313,10 @@ Page({
       })
       .catch((err) => {
         this.setData({ accepting: false })
-        wx.showToast({ title: formatCloudErr(err) || '加入失败', icon: 'none' })
+        const msg = formatCloudErr(err) || '加入失败'
+        this.setData({ lastError: msg })
+        pushDebug(this, 'acceptInvite fail: ' + msg)
+        wx.showToast({ title: msg.slice(0, 40), icon: 'none' })
       })
   },
 
