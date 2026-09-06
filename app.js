@@ -1,23 +1,32 @@
-const CLOUD_ENV_ID = 'CLOUD_ENV_ID' // 开通云开发后替换为真实环境 ID
+const config = require('./config/index')
 const auth = require('./services/auth')
 const pairService = require('./services/pair')
+
+const CLOUD_ENV_ID = config.cloudEnvId
 
 App({
   globalData: {
     openid: '',
     pairId: '',
     pair: null,
+    dataBackend: config.dataBackend,
   },
 
   onLaunch() {
-    if (!wx.cloud) {
-      console.error('请使用 2.2.3 或以上的基础库以使用云能力')
-      return
+    if (config.dataBackend === 'cloud') {
+      if (!wx.cloud) {
+        console.error('请使用 2.2.3 或以上的基础库以使用云能力')
+        return
+      }
+      wx.cloud.init({
+        env: CLOUD_ENV_ID,
+        traceUser: true,
+      })
+    } else if (!config.httpBaseUrl) {
+      console.warn(
+        '[app] dataBackend=http 但 httpBaseUrl 为空，请在 config/index.js 配置'
+      )
     }
-    wx.cloud.init({
-      env: CLOUD_ENV_ID,
-      traceUser: true,
-    })
     this.ensureLogin()
   },
 

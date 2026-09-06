@@ -1,24 +1,41 @@
 # 双人见闻（hello-share）
 
-微信原生小程序 + 云开发：双人邀请配对、图文见闻、带优先级待办、纪念日（应用内 + 订阅消息）、可换空间背景。
+微信原生小程序：双人邀请配对、图文见闻、带优先级待办、纪念日（应用内 + 订阅消息）、可换空间背景。
+
+数据层支持 **云开发** 与 **自建 HTTP API** 切换（默认云开发）。
 
 AppID：`wxe973b8825d2d5991`
 
 ---
 
-## 1. 替换云环境 ID
+## 1. 数据后端切换
 
-打开 `app.js`，将顶部常量：
+配置文件：`config/index.js`
 
 ```js
-const CLOUD_ENV_ID = 'CLOUD_ENV_ID'
+module.exports = {
+  dataBackend: 'cloud', // 或 'http'
+  cloudEnvId: 'test1-d3gl4me5obe3f13ce',
+  httpBaseUrl: '',      // 自建 API 根地址，无 trailing slash
+}
 ```
 
-替换为你在「微信开发者工具 → 云开发」开通后的真实环境 ID，然后重新编译。
+| `dataBackend` | 行为 |
+|---------------|------|
+| `'cloud'`（默认） | `app.js` 初始化微信云开发；`services/*` 走 `adapters/cloud/`（云函数 + 云数据库/存储） |
+| `'http'` | 不初始化云开发；`services/*` 走 `adapters/http/`，用 `wx.request` / `wx.uploadFile` 调用 `httpBaseUrl` |
+
+切换步骤：
+
+1. 改 `config/index.js` 的 `dataBackend`。
+2. 若用 HTTP：填写 `httpBaseUrl`（需在小程序后台配置合法 request / uploadFile 域名），并确保自建服务实现与 adapter 相同的接口形状（见 `adapters/http/*.js`）。
+3. 重新编译。页面仍只 `require('../../services/...')`，无需改业务页。
+
+当前云环境 ID：`test1-d3gl4me5obe3f13ce`（已写入 `config/index.js` 与 `app.js`）。
 
 ---
 
-## 2. 创建云数据库集合
+## 2. 创建云数据库集合（仅 cloud 后端）
 
 在云开发控制台 → 数据库中新建以下集合（名称需一致）：
 
@@ -36,7 +53,7 @@ const CLOUD_ENV_ID = 'CLOUD_ENV_ID'
 
 ---
 
-## 3. 部署云函数
+## 3. 部署云函数（仅 cloud 后端）
 
 在微信开发者工具中，右键下列目录分别「上传并部署：云端安装依赖」：
 
@@ -78,7 +95,7 @@ const CLOUD_ENV_ID = 'CLOUD_ENV_ID'
 在「我们」页（已创建/加入配对后）：
 
 - 预设主题：`warm`（暖阳）/ `mint`（薄荷）/ `night`（夜色）/ `plain`（简白）
-- 自定义图：上传后存至云存储 `pairs/{pairId}/background.jpg`，并写入 `pairs.background`
+- 自定义图：云后端上传至云存储 `pairs/{pairId}/background.jpg`；HTTP 后端走 `PUT/upload /api/pairs/:id/background`
 
 见闻 / 待办 / 纪念 / 我们 等主页面会读取 `pair.background` 应用 CSS 类或自定义 `backgroundImage`。
 
@@ -86,7 +103,7 @@ const CLOUD_ENV_ID = 'CLOUD_ENV_ID'
 
 ## 7. 体验版发布步骤
 
-1. 完成上文：替换 `CLOUD_ENV_ID`、建集合、部署云函数、替换订阅模板 ID、确认定时触发器。
+1. 确认 `config/index.js`：`dataBackend`、`cloudEnvId`（或 `httpBaseUrl`）、建集合、部署云函数、替换订阅模板 ID、确认定时触发器。
 2. 开发者工具用真机预览验证配对、见闻上传、待办、纪念日横幅。
 3. 上传代码：开发者工具点击「上传」，填写版本号与备注。
 4. 登录微信公众平台 → 管理 → 版本管理 → 开发版本 → **选为体验版**。
@@ -97,23 +114,19 @@ const CLOUD_ENV_ID = 'CLOUD_ENV_ID'
 
 ## 本地单测（utils）
 
-```bash
-npm test
-# 或
-node tests/invite.test.js
-node tests/todoSort.test.js
-node tests/anniversary.test.js
-```
+见 package.json scripts；可分别运行 tests 目录下的用例。
 
 ---
 
 ## 目录速览
 
-```
-app.js / app.json / app.wxss
-pages/feed|todos|anniversaries|pair/
-services/
-utils/
-cloudfunctions/
-docs/superpowers/
-```
+- app.js / app.json / app.wxss
+- config/index.js  (dataBackend / cloudEnvId / httpBaseUrl)
+- pages/
+- services/  (facade)
+- adapters/cloud/
+- adapters/http/
+- utils/
+- cloudfunctions/
+- server/
+- docs/

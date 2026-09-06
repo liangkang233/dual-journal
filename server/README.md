@@ -1,0 +1,13 @@
+# Self-hosted API (optional)
+
+When config/index.js sets dataBackend: http, the miniprogram calls httpBaseUrl via adapters/http/*.
+
+A full Express + SQLite server is not shipped yet. Implement endpoints mirroring the paths in adapters/http/*.js:
+
+- auth.js -> POST /api/auth/login
+- pair.js -> /api/pairs/...
+- entries.js -> /api/entries...
+- todos.js -> /api/todos...
+- anniversaries.js -> /api/anniversaries...
+
+Expect header x-openid on authenticated requests. File uploads use multipart/form-data via wx.uploadFile.
