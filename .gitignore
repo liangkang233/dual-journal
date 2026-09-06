@@ -7,3 +7,6 @@ project.private.config.json
 .idea/
 .vscode/
 *.pem
+config.local.js
+server/data/
+server/uploads/
