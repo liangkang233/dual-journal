@@ -13,14 +13,15 @@
 
   <view class="card">
     <view class="label">时间</view>
-    <input
-      class="title-input"
-      placeholder="日期时间或大概时间，如：周六下午"
-      maxlength="80"
-      value="{{timeAt}}"
-      data-field="timeAt"
-      bindinput="onFieldInput"
-    />
+    <view class="label-row">
+      <picker mode="date" value="{{timeDate}}" bindchange="onTimeDateChange">
+        <view class="date-picker {{timeDate ? '' : 'placeholder'}}">{{timeDate || '选择日期'}}</view>
+      </picker>
+      <picker mode="time" value="{{timeClock}}" bindchange="onTimeClockChange">
+        <view class="date-picker {{timeClock ? '' : 'placeholder'}}">{{timeClock || '选择时间'}}</view>
+      </picker>
+    </view>
+    <view class="hint" wx:if="{{timeAt}}">已选：{{timeAt}}</view>
   </view>
 
   <view class="card">

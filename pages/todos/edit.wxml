@@ -44,14 +44,15 @@
 
   <view class="card">
     <view class="label">大概时间</view>
-    <input
-      class="title-input"
-      placeholder="如：周六上午"
-      maxlength="80"
-      value="{{approxTime}}"
-      data-field="approxTime"
-      bindinput="onFieldInput"
-    />
+    <view class="label-row">
+      <picker mode="date" value="{{approxDate}}" bindchange="onApproxDateChange">
+        <view class="date-picker {{approxDate ? '' : 'placeholder'}}">{{approxDate || '选择日期'}}</view>
+      </picker>
+      <picker mode="time" value="{{approxClock}}" bindchange="onApproxClockChange">
+        <view class="date-picker {{approxClock ? '' : 'placeholder'}}">{{approxClock || '选择时间'}}</view>
+      </picker>
+    </view>
+    <view class="hint" wx:if="{{approxTime}}">已选：{{approxTime}}</view>
   </view>
 
   <view class="card">
@@ -67,15 +68,16 @@
   </view>
 
   <view class="card">
-    <view class="label">时间（可选）</view>
-    <input
-      class="title-input"
-      placeholder="更精确的时间说明"
-      maxlength="80"
-      value="{{timeAt}}"
-      data-field="timeAt"
-      bindinput="onFieldInput"
-    />
+    <view class="label">时间（六要素）</view>
+    <view class="label-row">
+      <picker mode="date" value="{{timeDate}}" bindchange="onTimeDateChange">
+        <view class="date-picker {{timeDate ? '' : 'placeholder'}}">{{timeDate || '选择日期'}}</view>
+      </picker>
+      <picker mode="time" value="{{timeClock}}" bindchange="onTimeClockChange">
+        <view class="date-picker {{timeClock ? '' : 'placeholder'}}">{{timeClock || '选择时间'}}</view>
+      </picker>
+    </view>
+    <view class="hint" wx:if="{{timeAt}}">已选：{{timeAt}}</view>
   </view>
 
   <view class="card">

@@ -44,7 +44,7 @@
   <h2>见闻</h2>
   <div class="form-block">
     <div class="row"><label>标题</label><input type="text" id="e-title" placeholder="标题" /></div>
-    <div class="row"><label>时间</label><input type="text" id="e-timeAt" placeholder="时间" /></div>
+    <div class="row"><label>时间</label><input type="datetime-local" id="e-timeAt" /></div>
     <div class="row"><label>地点</label><input type="text" id="e-location" placeholder="地点" /></div>
     <div class="row"><label>人物</label><input type="text" id="e-people" placeholder="人物" /></div>
     <div class="row"><label>起因</label><input type="text" id="e-cause" placeholder="起因" /></div>
@@ -67,10 +67,10 @@
         <option value="low">低</option>
       </select>
     </div>
-    <div class="row"><label>大概时间</label><input type="text" id="t-approxTime" placeholder="approxTime" /></div>
+    <div class="row"><label>大概时间</label><input type="datetime-local" id="t-approxTime" /></div>
     <div class="row"><label>地点</label><input type="text" id="t-location" placeholder="地点" /></div>
     <div class="row"><label>截止</label><input type="datetime-local" id="t-dueAt" /></div>
-    <div class="row"><label>时间</label><input type="text" id="t-timeAt" placeholder="时间（六要素）" /></div>
+    <div class="row"><label>时间</label><input type="datetime-local" id="t-timeAt" /></div>
     <div class="row"><label>人物</label><input type="text" id="t-people" placeholder="人物" /></div>
     <div class="row"><label>起因</label><input type="text" id="t-cause" placeholder="起因" /></div>
     <div class="row"><label>经过</label><textarea id="t-process" placeholder="经过"></textarea></div>
@@ -152,7 +152,20 @@
     return { label: label, overdue: overdue };
   }
 
+
   function val(id) { return $(id).value.trim(); }
+
+  /** datetime-local -> 可读本地时间字符串 */
+  function dtLocalDisplay(id) {
+    var raw = $(id).value;
+    if (!raw) return '';
+    var d = new Date(raw);
+    if (Number.isNaN(d.getTime())) return raw;
+    var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
+      ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+
 
   // --- Entries ---
   function loadEntries() {
@@ -192,7 +205,7 @@
     var body = {
       pairId: state.pairId,
       title: val('e-title'),
-      timeAt: val('e-timeAt'),
+      timeAt: dtLocalDisplay('e-timeAt'),
       location: val('e-location'),
       people: val('e-people'),
       cause: val('e-cause'),
@@ -287,10 +300,10 @@
       pairId: state.pairId,
       title: val('t-title'),
       priority: $('t-priority').value,
-      approxTime: val('t-approxTime'),
+      approxTime: dtLocalDisplay('t-approxTime'),
       location: val('t-location'),
       dueAt: dueAt,
-      timeAt: val('t-timeAt'),
+      timeAt: dtLocalDisplay('t-timeAt'),
       people: val('t-people'),
       cause: val('t-cause'),
       process: val('t-process'),

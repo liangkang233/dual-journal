@@ -6,6 +6,8 @@ const DRAFT_KEY = 'feed_edit_draft'
 
 Page({
   data: {
+    timeClock: '',
+    timeDate: '',
     id: '',
     isEdit: false,
     title: '',
@@ -83,6 +85,22 @@ Page({
         wx.hideLoading()
         wx.showToast({ title: err.message || '加载失败', icon: 'none' })
       })
+  },
+
+
+  syncDateTimeField(dateKey, clockKey, targetKey) {
+    const date = this.data[dateKey] || ''
+    const clock = this.data[clockKey] || ''
+    const timeAt = date ? (date + (clock ? ' ' + clock : '')) : ''
+    this.setData({ [targetKey]: timeAt })
+  },
+  onTimeDateChange(e) {
+    this.setData({ timeDate: e.detail.value })
+    this.syncDateTimeField('timeDate', 'timeClock', 'timeAt')
+  },
+  onTimeClockChange(e) {
+    this.setData({ timeClock: e.detail.value })
+    this.syncDateTimeField('timeDate', 'timeClock', 'timeAt')
   },
 
   onFieldInput(e) {

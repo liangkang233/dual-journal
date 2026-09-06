@@ -3,6 +3,10 @@ const todosService = require('../../services/todos')
 
 Page({
   data: {
+    approxClock: '',
+    approxDate: '',
+    timeClock: '',
+    timeDate: '',
     id: '',
     title: '',
     priority: 'medium',
@@ -98,6 +102,32 @@ Page({
     const d = new Date(y, m, day, 23, 59, 59, 0)
     const t = d.getTime()
     return Number.isNaN(t) ? null : t
+  },
+
+
+  syncDateTimeField(dateKey, clockKey, targetKey) {
+    const date = this.data[dateKey] || ''
+    const clock = this.data[clockKey] || ''
+    const timeAt = date ? (date + (clock ? ' ' + clock : '')) : ''
+    this.setData({ [targetKey]: timeAt })
+  },
+
+  onApproxDateChange(e) {
+    this.setData({ approxDate: e.detail.value })
+    this.syncDateTimeField('approxDate', 'approxClock', 'approxTime')
+  },
+  onApproxClockChange(e) {
+    this.setData({ approxClock: e.detail.value })
+    this.syncDateTimeField('approxDate', 'approxClock', 'approxTime')
+  },
+
+  onTimeDateChange(e) {
+    this.setData({ timeDate: e.detail.value })
+    this.syncDateTimeField('timeDate', 'timeClock', 'timeAt')
+  },
+  onTimeClockChange(e) {
+    this.setData({ timeClock: e.detail.value })
+    this.syncDateTimeField('timeDate', 'timeClock', 'timeAt')
   },
 
   onFieldInput(e) {
