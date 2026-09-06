@@ -187,9 +187,35 @@ function updateBackground(opts) {
   })
 }
 
-/** Cloud: no auto solo — return existing pair only */
+/**
+ * 云端单人空间：无 pair 时自动建一条仅含自己的 pairs 记录，便于未配对即可读写
+ * @returns {Promise<object|null>}
+ */
 function ensureSolo() {
-  return getMyPair()
+  return getMyPair().then((pair) => {
+    if (pair) return pair
+    const app = getApp()
+    const openid = app && app.globalData && app.globalData.openid
+    if (!openid) {
+      return Promise.reject(new Error('未登录，无法创建个人空间'))
+    }
+    const db = wx.cloud.database()
+    const now = Date.now()
+    return db
+      .collection('pairs')
+      .add({
+        data: {
+          memberOpenids: [openid],
+          inviteCode: '',
+          inviteExpireAt: 0,
+          inviteActive: false,
+          background: { type: 'preset', presetId: 'blush' },
+          createdAt: now,
+          updatedAt: now,
+        },
+      })
+      .then(() => getMyPair())
+  })
 }
 
 module.exports = {

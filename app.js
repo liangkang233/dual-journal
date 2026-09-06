@@ -39,10 +39,7 @@ App({
       .then(() => pairService.getMyPair())
       .then((pair) => {
         if (pair) return pair
-        if (
-          config.dataBackend === 'http' &&
-          typeof pairService.ensureSolo === 'function'
-        ) {
+        if (typeof pairService.ensureSolo === 'function') {
           return pairService.ensureSolo()
         }
         return null

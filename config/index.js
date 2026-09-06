@@ -1,5 +1,5 @@
 var defaults = {
-  dataBackend: 'http',
+  dataBackend: 'cloud',
   cloudEnvId: 'test1-d3gl4me5obe3f13ce',
   httpBaseUrl: 'http://127.0.0.1:8787',
 }
