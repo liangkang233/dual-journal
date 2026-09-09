@@ -100,7 +100,10 @@ function cloudCallError(err, fallback) {
   const code = err && (err.errCode || err.code)
   const msg = (err && (err.message || err.errMsg)) || ''
   if (code === -601034) {
-    return new Error('未开通云服务：请在开发者工具打开「云开发」并绑定环境 test1')
+    return new Error('未开通云服务：请在开发者工具打开「云开发」并绑定环境')
+  }
+  if (code === -501000 || /Environment not found|INVALID_ENV/i.test(msg)) {
+    return new Error('云环境不存在(INVALID_ENV)：请核对 config 里 cloudEnvId 是否与云开发控制台一致')
   }
   return new Error(msg || fallback || '云调用失败')
 }

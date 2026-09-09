@@ -24,6 +24,9 @@ function formatCloudErr(err) {
   if (code === -601034) {
     return '未开通云服务：开发者工具打开「云开发」并绑定本环境'
   }
+  if (code === -501000 || /Environment not found|INVALID_ENV/i.test(String(err.message || err.errMsg || ''))) {
+    return '云环境不存在：请到云开发复制真实环境 ID，写入 config.local.js 的 cloudEnvId'
+  }
   return err.message || err.errMsg || '操作失败'
 }
 
