@@ -1,4 +1,4 @@
-const CHARSET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+const CHARSET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789' // 去掉 0O1IL 易混字符
 const CODE_RE = /^[A-Z0-9]{6}$/
 
 function generateInviteCode() {
@@ -10,7 +10,7 @@ function generateInviteCode() {
 }
 
 function isInviteCodeFormat(code) {
-  return typeof code === 'string' && CODE_RE.test(code)
+  return typeof code === 'string' && CODE_RE.test(String(code).trim().toUpperCase())
 }
 
-module.exports = { generateInviteCode, isInviteCodeFormat }
+module.exports = { generateInviteCode, isInviteCodeFormat, CHARSET }

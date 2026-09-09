@@ -307,7 +307,16 @@ Page({
         try { wx.setStorageSync('invite_last_generate_at', Date.now()) } catch (e) {}
         this._startInviteCooldownTick && this._startInviteCooldownTick()
         pushDebug(this, 'createInvite ok code=' + res.inviteCode)
-        wx.showToast({ title: '已生成邀请码', icon: 'success' })
+        // 生成后自动复制，方便发给对方
+        wx.setClipboardData({
+          data: String(res.inviteCode || ''),
+          success() {
+            wx.showToast({ title: '已生成并复制', icon: 'success' })
+          },
+          fail() {
+            wx.showToast({ title: '已生成邀请码', icon: 'success' })
+          },
+        })
         return pairService.getMyPair()
       })
       .catch((err) => {
@@ -344,12 +353,18 @@ Page({
   },
 
   onCopyCode() {
-    const code = this.data.inviteCode
-    if (!code) return
+    const code = String(this.data.inviteCode || '').trim().toUpperCase()
+    if (!code) {
+      wx.showToast({ title: '暂无邀请码', icon: 'none' })
+      return
+    }
     wx.setClipboardData({
       data: code,
       success() {
-        wx.showToast({ title: '已复制', icon: 'success' })
+        wx.showToast({ title: '邀请码已复制', icon: 'success' })
+      },
+      fail() {
+        wx.showToast({ title: '复制失败，请长按码手动复制', icon: 'none' })
       },
     })
   },

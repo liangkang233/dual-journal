@@ -3,6 +3,7 @@
  */
 
 const { PRESET_IDS } = require('../../utils/background')
+const { generateInviteCode } = require('../../utils/invite')
 
 /**
  * 查询当前用户所在的 pair（云数据库 pairs，memberOpenids 含 openid）
@@ -86,16 +87,6 @@ function scrubExpiredInvite(pair) {
     )
 }
 
-const CHARSET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-
-function generateInviteCode() {
-  let code = ''
-  for (let i = 0; i < 6; i++) {
-    code += CHARSET[Math.floor(Math.random() * CHARSET.length)]
-  }
-  return code
-}
-
 function cloudCallError(err, fallback) {
   const code = err && (err.errCode || err.code)
   const msg = (err && (err.message || err.errMsg)) || ''
@@ -137,22 +128,35 @@ function createInviteLocal() {
           updatedAt: Date.now(),
         },
       })
-      .then(() => {
-        const app = getApp()
-        if (app && app.globalData) {
-          app.globalData.pairId = pair._id
-          app.globalData.pair = Object.assign({}, pair, {
-            inviteCode: inviteCode,
-            inviteExpireAt: inviteExpireAt,
-            inviteActive: true,
+      .then(() =>
+        db
+          .collection('pairs')
+          .doc(pair._id)
+          .get()
+          .then((got) => {
+            const doc = (got && got.data) || {}
+            const saved = String(doc.inviteCode || '').toUpperCase()
+            if (saved !== inviteCode) {
+              return Promise.reject(
+                new Error('邀请码未写入云库，请检查数据库权限后重试')
+              )
+            }
+            const app = getApp()
+            if (app && app.globalData) {
+              app.globalData.pairId = pair._id
+              app.globalData.pair = Object.assign({}, pair, {
+                inviteCode: inviteCode,
+                inviteExpireAt: inviteExpireAt,
+                inviteActive: true,
+              })
+            }
+            return {
+              pairId: pair._id,
+              inviteCode: inviteCode,
+              inviteExpireAt: inviteExpireAt,
+            }
           })
-        }
-        return {
-          pairId: pair._id,
-          inviteCode: inviteCode,
-          inviteExpireAt: inviteExpireAt,
-        }
-      })
+      )
   })
 }
 

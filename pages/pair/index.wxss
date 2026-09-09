@@ -169,3 +169,10 @@
   margin-top: 6rpx;
   word-break: break-all;
 }
+
+.invite-box .invite-btn {
+  margin-top: 20rpx;
+}
+.invite-box .btn.ghost {
+  margin-top: 16rpx;
+}

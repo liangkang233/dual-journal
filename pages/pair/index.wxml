@@ -28,10 +28,12 @@
       {{inviteCooldownSec > 0 ? ('请 ' + inviteCooldownSec + ' 秒后再生成') : '生成邀请码'}}
     </button>
     <view class="invite-box" wx:if="{{inviteCode}}">
-      <view class="invite-code" bindtap="onCopyCode">{{inviteCode}}</view>
+      <view class="meta">邀请码</view>
+      <view class="invite-code" selectable="true">{{inviteCode}}</view>
       <view class="meta">过期时间：{{expireText}}（10 分钟有效）</view>
-      <view class="hint">点击码可复制；右上角「…」分享给好友</view>
+      <button class="btn primary invite-btn" bindtap="onCopyCode">复制邀请码</button>
       <button class="btn ghost" open-type="share">分享给好友</button>
+      <view class="hint">也可点右上角「…」转发小程序给对方</view>
     </view>
   </view>
 

@@ -2,7 +2,7 @@ const cloud = require('wx-server-sdk')
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
-const CHARSET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+const CHARSET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789' // 去掉易混字符
 const INVITE_TTL_MS = 10 * 60 * 1000 // 10 minutes
 const MAX_MEMBERS = 2
 
