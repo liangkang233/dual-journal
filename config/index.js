@@ -1,6 +1,6 @@
 var defaults = {
   dataBackend: 'cloud',
-  cloudEnvId: 'test1-d3gl4me5obe3f13ce',
+  cloudEnvId: 'cloud1-d1gbvd1vw92534fc6',
   httpBaseUrl: 'http://127.0.0.1:8787',
 }
 var local = {}
