@@ -19,6 +19,7 @@ function generateInviteCode() {
  * @returns {{ ok: true, pairId, inviteCode, inviteExpireAt } | { ok: false, error }}
  */
 exports.main = async () => {
+  const db = cloud.database()
   const { OPENID } = cloud.getWXContext()
   if (!OPENID) {
     return { ok: false, error: '未获取到登录态' }
