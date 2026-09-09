@@ -416,10 +416,50 @@ function ensureSolo() {
   })
 }
 
+
+/**
+ * 开发版专用：写入一个假的第二成员 openid，便于单人测「已配对」状态
+ * @returns {Promise<object>}
+ */
+function simulateDevPartner() {
+  const app = getApp()
+  const isDev = !!(app && app.globalData && app.globalData.isDevBuild)
+  if (!isDev) {
+    return Promise.reject(new Error('仅开发版可用'))
+  }
+  return ensureSolo().then((pair) => {
+    if (!pair || !pair._id) {
+      return Promise.reject(new Error('请先登录并创建个人空间'))
+    }
+    const members = (pair.memberOpenids || []).slice()
+    if (members.length >= 2) {
+      return pair
+    }
+    const fake = 'dev_partner_' + String(Date.now()).slice(-8)
+    members.push(fake)
+    const db = wx.cloud.database()
+    const now = Date.now()
+    return db
+      .collection('pairs')
+      .doc(pair._id)
+      .update({
+        data: {
+          memberOpenids: members,
+          inviteActive: false,
+          inviteCode: '',
+          inviteExpireAt: 0,
+          updatedAt: now,
+        },
+      })
+      .then(() => getMyPair())
+  })
+}
+
 module.exports = {
   getMyPair,
   createInvite,
   acceptInvite,
   ensureSolo,
+  simulateDevPartner,
   updateBackground,
 }

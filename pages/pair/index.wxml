@@ -12,6 +12,8 @@
       <view class="debug-log" wx:for="{{debugLines}}" wx:key="*this">{{item}}</view>
       <button class="btn ghost" size="mini" bindtap="onProbeCloud">探测云能力</button>
       <button class="btn ghost" size="mini" bindtap="onCopyDebug">复制调试信息</button>
+      <button class="btn primary" size="mini" loading="{{simulating}}" bindtap="onSimulatePartner">模拟第二人加入</button>
+      <view class="hint">仅开发版：写入假成员，方便单人看「已配对」；真双人请用第二个微信号扫码。</view>
     </block>
   </view>
   <view class="section card">

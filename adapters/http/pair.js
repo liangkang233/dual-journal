@@ -152,10 +152,15 @@ function ensureSolo() {
   })
 }
 
+function simulateDevPartner() {
+  return Promise.reject(new Error('HTTP 模式请用两个不同的 x-openid 测配对，或切 cloud 开发版模拟'))
+}
+
 module.exports = {
   getMyPair,
   createInvite,
   acceptInvite,
   ensureSolo,
+  simulateDevPartner,
   updateBackground,
 }

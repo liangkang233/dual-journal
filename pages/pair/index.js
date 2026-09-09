@@ -44,6 +44,7 @@ Page({
     inputCode: '',
     loading: false,
     generating: false,
+    simulating: false,
     inviteCooldownSec: 0,
     accepting: false,
     statusText: '加载中…',
@@ -301,6 +302,7 @@ Page({
           memberCount: Math.max(this.data.memberCount, 1),
           hasPair: true,
           generating: false,
+    simulating: false,
           inviteCooldownSec: 10,
           statusText: '邀请码已生成，10 分钟内有效，可分享给对方',
         })
@@ -350,6 +352,29 @@ Page({
         pushDebug(this, 'acceptInvite fail: ' + msg)
         wx.showToast({ title: msg.slice(0, 40), icon: 'none' })
       })
+  },
+
+  onSimulatePartner() {
+    if (!this.data.showDebug) return
+    if (this.data.simulating) return
+    this.setData({ simulating: true })
+    const run =
+      typeof pairService.simulateDevPartner === 'function'
+        ? pairService.simulateDevPartner()
+        : Promise.reject(new Error('当前后端不支持模拟配对'))
+    run
+      .then(() => {
+        wx.showToast({ title: '已模拟双人', icon: 'success' })
+        pushDebug(this, 'simulateDevPartner ok')
+        return this.refresh()
+      })
+      .catch((err) => {
+        const msg = (err && err.message) || '模拟失败'
+        this.setData({ lastError: msg })
+        pushDebug(this, 'simulateDevPartner fail: ' + msg)
+        wx.showToast({ title: msg.slice(0, 40), icon: 'none' })
+      })
+      .then(() => this.setData({ simulating: false }))
   },
 
   onCopyCode() {
