@@ -14,10 +14,10 @@ const {
 
 const PORT = Number(process.env.PORT) || 8787
 const UPLOAD_DIR = path.join(__dirname, '..', 'uploads')
-const CHARSET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+const CHARSET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
 const INVITE_TTL_MS = 48 * 60 * 60 * 1000
 const MAX_MEMBERS = 2
-const CODE_RE = /^[A-Z0-9]{6}$/
+const CODE_RE = /^[A-HJ-NP-Z2-9]{6}$/
 const PRESET_IDS = ['warm', 'mint', 'night', 'blush']
 const VALID_PRIORITIES = ['high', 'medium', 'low']
 const VALID_STATUSES = ['open', 'done']
@@ -88,13 +88,21 @@ function requireAuth(req, res, next) {
 
 function findPairByMember(openid) {
   const rows = db.prepare('SELECT * FROM pairs').all()
+  let foundSolo = null
+  let foundPair = null
+  
   for (const row of rows) {
     const members = JSON.parse(row.member_openids || '[]')
     if (Array.isArray(members) && members.indexOf(openid) >= 0) {
-      return row
+      if (members.length >= 2) {
+        return row
+      } else if (!foundSolo) {
+        foundSolo = row
+      }
     }
   }
-  return null
+  
+  return foundSolo
 }
 
 function getPairRow(id) {
@@ -228,15 +236,19 @@ app.post('/api/pairs/accept', requireAuth, (req, res) => {
   if (!isInviteCodeFormat(inviteCode)) {
     return res
       .status(400)
-      .json({ error: '邀请码格式不正确，请输入 6 位大写字母或数字' })
+      .json({ error: '邀请码格式不正确，请输入 6 位字符（不含 0O1IL）' })
   }
 
   const mine = findPairByMember(openid)
+  let myMembers = []
   if (mine) {
     if (mine.invite_code === inviteCode) {
       return res.json({ pairId: mine._id })
     }
-    return res.status(400).json({ error: '你已在其他配对中，无法再加入' })
+    myMembers = JSON.parse(mine.member_openids || '[]')
+    if (myMembers.length >= 2) {
+      return res.status(400).json({ error: '你已在其他配对中，无法再加入' })
+    }
   }
 
   const found = db
@@ -274,8 +286,23 @@ app.post('/api/pairs/accept', requireAuth, (req, res) => {
   const newMembers = members.concat([openid])
   const full = newMembers.length >= MAX_MEMBERS
   db.prepare(
-    `UPDATE pairs SET member_openids = ?, invite_active = ?, updated_at = ? WHERE _id = ?`
-  ).run(JSON.stringify(newMembers), full ? 0 : 1, now, found._id)
+    `UPDATE pairs SET member_openids = ?, invite_active = ?, invite_code = ?, updated_at = ? WHERE _id = ?`
+  ).run(JSON.stringify(newMembers), full ? 0 : 1, full ? null : found.invite_code, now, found._id)
+
+  if (mine && myMembers && myMembers.length === 1) {
+    const hasEntries = db.prepare('SELECT COUNT(*) as cnt FROM entries WHERE pair_id = ?').get(mine._id)
+    const hasTodos = db.prepare('SELECT COUNT(*) as cnt FROM todos WHERE pair_id = ?').get(mine._id)
+    const hasAnniversaries = db.prepare('SELECT COUNT(*) as cnt FROM anniversaries WHERE pair_id = ?').get(mine._id)
+    
+    if (hasEntries.cnt === 0 && hasTodos.cnt === 0 && hasAnniversaries.cnt === 0) {
+      db.prepare('DELETE FROM pairs WHERE _id = ?').run(mine._id)
+    } else {
+      db.prepare('UPDATE entries SET pair_id = ? WHERE pair_id = ?').run(found._id, mine._id)
+      db.prepare('UPDATE todos SET pair_id = ? WHERE pair_id = ?').run(found._id, mine._id)
+      db.prepare('UPDATE anniversaries SET pair_id = ? WHERE pair_id = ?').run(found._id, mine._id)
+      db.prepare('DELETE FROM pairs WHERE _id = ?').run(mine._id)
+    }
+  }
 
   res.json({ pairId: found._id })
 })

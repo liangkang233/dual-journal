@@ -1,5 +1,5 @@
-const CHARSET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-const CODE_RE = /^[A-Z0-9]{6}$/
+const CHARSET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
+const CODE_RE = /^[A-HJ-NP-Z2-9]{6}$/
 
 function generateInviteCode() {
   let code = ''

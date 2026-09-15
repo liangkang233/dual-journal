@@ -19,10 +19,17 @@ function getMyPair() {
   return db
     .collection('pairs')
     .where({ memberOpenids: openid })
-    .limit(1)
     .get()
     .then((res) => {
-      const pair = (res.data && res.data[0]) || null
+      let pair = null
+      if (res.data && res.data.length > 0) {
+        if (res.data.length === 1) {
+          pair = res.data[0]
+        } else {
+          const twoPerson = res.data.find(p => (p.memberOpenids || []).length >= 2)
+          pair = twoPerson || res.data[0]
+        }
+      }
       if (app && app.globalData) {
         if (pair) {
           app.globalData.pairId = pair._id
@@ -37,7 +44,7 @@ function getMyPair() {
 }
 
 const INVITE_TTL_MS = 48 * 60 * 60 * 1000
-const CHARSET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+const CHARSET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
 
 function generateInviteCode() {
   let code = ''
@@ -144,53 +151,115 @@ function acceptInviteLocal(inviteCode) {
   }
   const db = wx.cloud.database()
   const now = Date.now()
+  
   return db
     .collection('pairs')
-    .where({
-      inviteCode: inviteCode,
-      inviteActive: true,
-    })
+    .where({ memberOpenids: openid })
     .limit(1)
     .get()
-    .then((res) => {
-      const pair = (res.data && res.data[0]) || null
-      if (!pair) {
-        return Promise.reject(new Error('邀请码无效或已失效'))
-      }
-      if (pair.inviteExpireAt && pair.inviteExpireAt < now) {
-        return Promise.reject(new Error('邀请码已过期'))
-      }
-      const members = pair.memberOpenids || []
-      if (members.indexOf(openid) >= 0) {
-        if (app.globalData) {
-          app.globalData.pairId = pair._id
-          app.globalData.pair = pair
-        }
-        return { pairId: pair._id }
-      }
-      if (members.length >= 2) {
-        return Promise.reject(new Error('配对已满员'))
-      }
-      const nextMembers = members.concat([openid])
+    .then((myRes) => {
+      const myPair = (myRes.data && myRes.data[0]) || null
+      
       return db
         .collection('pairs')
-        .doc(pair._id)
-        .update({
-          data: {
-            memberOpenids: nextMembers,
-            inviteActive: nextMembers.length >= 2 ? false : true,
-            updatedAt: now,
-          },
+        .where({
+          inviteCode: inviteCode,
+          inviteActive: true,
         })
-        .then(() => {
-          if (app.globalData) {
-            app.globalData.pairId = pair._id
-            app.globalData.pair = Object.assign({}, pair, {
-              memberOpenids: nextMembers,
-              inviteActive: nextMembers.length < 2,
-            })
+        .limit(1)
+        .get()
+        .then((res) => {
+          const pair = (res.data && res.data[0]) || null
+          if (!pair) {
+            return Promise.reject(new Error('邀请码无效或已失效'))
           }
-          return { pairId: pair._id }
+          
+          if (myPair && myPair.inviteCode === inviteCode) {
+            if (app.globalData) {
+              app.globalData.pairId = myPair._id
+              app.globalData.pair = myPair
+            }
+            return { pairId: myPair._id }
+          }
+          
+          if (myPair) {
+            const myMembers = myPair.memberOpenids || []
+            if (myMembers.length >= 2) {
+              return Promise.reject(new Error('你已在其他配对中，无法再加入'))
+            }
+          }
+          
+          if (pair.inviteExpireAt && pair.inviteExpireAt < now) {
+            return Promise.reject(new Error('邀请码已过期'))
+          }
+          const members = pair.memberOpenids || []
+          if (members.indexOf(openid) >= 0) {
+            if (app.globalData) {
+              app.globalData.pairId = pair._id
+              app.globalData.pair = pair
+            }
+            return { pairId: pair._id }
+          }
+          if (members.length >= 2) {
+            return Promise.reject(new Error('配对已满员'))
+          }
+          const nextMembers = members.concat([openid])
+          const full = nextMembers.length >= 2
+          
+          const updateData = {
+            memberOpenids: nextMembers,
+            inviteActive: !full,
+            updatedAt: now,
+          }
+          if (full) {
+            updateData.inviteCode = ''
+          }
+          
+          return db
+            .collection('pairs')
+            .doc(pair._id)
+            .update({ data: updateData })
+            .then(() => {
+              if (!myPair || !myPair.memberOpenids || myPair.memberOpenids.length !== 1) {
+                if (app.globalData) {
+                  app.globalData.pairId = pair._id
+                  app.globalData.pair = Object.assign({}, pair, {
+                    memberOpenids: nextMembers,
+                    inviteActive: !full,
+                  })
+                }
+                return { pairId: pair._id }
+              }
+              
+              return Promise.all([
+                db.collection('entries').where({ pairId: myPair._id }).count(),
+                db.collection('todos').where({ pairId: myPair._id }).count(),
+                db.collection('anniversaries').where({ pairId: myPair._id }).count(),
+              ]).then(([entriesRes, todosRes, anniRes]) => {
+                const hasData = entriesRes.total > 0 || todosRes.total > 0 || anniRes.total > 0
+                
+                const promises = []
+                if (hasData) {
+                  promises.push(
+                    db.collection('entries').where({ pairId: myPair._id }).update({ data: { pairId: pair._id } }),
+                    db.collection('todos').where({ pairId: myPair._id }).update({ data: { pairId: pair._id } }),
+                    db.collection('anniversaries').where({ pairId: myPair._id }).update({ data: { pairId: pair._id } })
+                  )
+                }
+                promises.push(db.collection('pairs').doc(myPair._id).remove())
+                
+                return Promise.all(promises).then(() => {
+                  if (app.globalData) {
+                    app.globalData.pairId = pair._id
+                    app.globalData.pair = Object.assign({}, pair, {
+                      memberOpenids: nextMembers,
+                      inviteActive: !full,
+                    })
+                  }
+                  return { pairId: pair._id }
+                })
+              })
+            })
         })
     })
 }

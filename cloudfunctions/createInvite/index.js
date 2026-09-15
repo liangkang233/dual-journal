@@ -2,7 +2,7 @@ const cloud = require('wx-server-sdk')
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
-const CHARSET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+const CHARSET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
 const INVITE_TTL_MS = 48 * 60 * 60 * 1000 // 48 hours
 const MAX_MEMBERS = 2
 
@@ -24,6 +24,7 @@ exports.main = async () => {
     return { ok: false, error: '未获取到登录态' }
   }
 
+  const db = cloud.database()
   const now = Date.now()
   const inviteCode = generateInviteCode()
   const inviteExpireAt = now + INVITE_TTL_MS
