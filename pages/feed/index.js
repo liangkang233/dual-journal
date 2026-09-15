@@ -2,6 +2,7 @@ const app = getApp()
 const entriesService = require('../../services/entries')
 const annService = require('../../services/anniversaries')
 const { applyPairBackground } = require('../../utils/background')
+const { formatRelativeTime } = require('../../utils/relativeTime')
 
 Page({
   data: {
@@ -52,18 +53,18 @@ Page({
     entriesService
       .listEntries()
       .then((list) => {
+        const myOpenid = app.globalData && app.globalData.openid
         const entries = (list || []).map((item) => {
-          const process = item.process || item.content || ''
-          const metaBits = []
-          if (item.timeAt) metaBits.push(item.timeAt)
-          if (item.location) metaBits.push(item.location)
-          if (item.people) metaBits.push(item.people)
+          const isSelf = item.authorOpenid === myOpenid
+          const authorLabel = isSelf ? '我' : 'TA'
+          const images = item.imageFileIds || []
+          
           return Object.assign({}, item, {
-            timeText: this.formatTime(item.createdAt),
-            previewImages: (item.imageFileIds || []).slice(0, 3),
-            processPreview: process,
-            fieldLine: metaBits.join(' · '),
-            resultPreview: item.result || '',
+            authorLabel,
+            relativeTime: formatRelativeTime(item.createdAt),
+            bodyText: item.process || item.content || item.title || '',
+            images,
+            imageCount: images.length
           })
         })
         this.setData({ entries, loading: false })
@@ -75,21 +76,16 @@ Page({
       })
   },
 
-  formatTime(ts) {
-    if (!ts) return ''
-    const d = new Date(ts)
-    const pad = (n) => (n < 10 ? '0' + n : '' + n)
-    return (
-      d.getFullYear() +
-      '-' +
-      pad(d.getMonth() + 1) +
-      '-' +
-      pad(d.getDate()) +
-      ' ' +
-      pad(d.getHours()) +
-      ':' +
-      pad(d.getMinutes())
-    )
+  previewImages(e) {
+    const idx = e.currentTarget.dataset.idx
+    const id = e.currentTarget.dataset.id
+    const entry = this.data.entries.find(e => e._id === id)
+    if (!entry || !entry.images || entry.images.length === 0) return
+    
+    wx.previewImage({
+      current: entry.images[idx],
+      urls: entry.images
+    })
   },
 
   goPair() {

@@ -1,5 +1,6 @@
 {
   "description": "最小可分享小程序",
+  "version": "0.2.0",
   "packOptions": {
     "ignore": [
       {
@@ -16,7 +17,23 @@
       },
       {
         "type": "folder",
+        "value": "node_modules"
+      },
+      {
+        "type": "folder",
+        "value": "tmp-preview"
+      },
+      {
+        "type": "folder",
+        "value": "scripts"
+      },
+      {
+        "type": "folder",
         "value": ".git"
+      },
+      {
+        "type": "file",
+        "value": "package.json"
       },
       {
         "type": "suffix",

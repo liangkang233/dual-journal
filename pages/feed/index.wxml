@@ -26,29 +26,41 @@
       <button class="empty-cta" bindtap="goEdit">写一条见闻</button>
     </view>
 
-    <view wx:else class="timeline">
+    <view wx:else class="moments-feed">
       <view
-        class="entry-card"
+        class="moment-card"
         wx:for="{{entries}}"
         wx:key="_id"
         data-id="{{item._id}}"
         bindtap="goDetail"
       >
-        <view class="entry-title">{{item.title || '无标题'}}</view>
-        <view class="entry-fields" wx:if="{{item.fieldLine}}">{{item.fieldLine}}</view>
-        <view class="entry-content">{{item.processPreview}}</view>
-        <view class="entry-result" wx:if="{{item.resultPreview}}">结果：{{item.resultPreview}}</view>
-        <view class="entry-thumbs" wx:if="{{item.previewImages.length}}">
-          <image
-            wx:for="{{item.previewImages}}"
-            wx:for-item="img"
-            wx:key="*this"
-            class="thumb"
-            src="{{img}}"
-            mode="aspectFill"
-          />
+        <view class="moment-header">
+          <view class="author-avatar">{{item.authorLabel}}</view>
+          <view class="moment-header-right">
+            <view class="author-name">{{item.authorLabel}}</view>
+            <view class="moment-time">{{item.relativeTime}}</view>
+          </view>
         </view>
-        <view class="entry-meta">{{item.timeText}}</view>
+        
+        <view class="moment-body">{{item.bodyText}}</view>
+        
+        <view class="moment-images" wx:if="{{item.imageCount > 0}}">
+          <view class="image-grid grid-{{item.imageCount > 9 ? 9 : item.imageCount}}">
+            <image
+              wx:for="{{item.images}}"
+              wx:for-index="idx"
+              wx:for-item="img"
+              wx:key="*this"
+              wx:if="{{idx < 9}}"
+              class="grid-image"
+              src="{{img}}"
+              mode="aspectFill"
+              data-idx="{{idx}}"
+              data-id="{{item._id}}"
+              catchtap="previewImages"
+            />
+          </view>
+        </view>
       </view>
     </view>
 

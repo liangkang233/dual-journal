@@ -39,38 +39,201 @@
   border-radius: 24rpx;
 }
 
-.ann-list {
+/* 视图切换 */
+.view-toggle {
   display: flex;
-  flex-direction: column;
-  gap: 20rpx;
+  gap: 16rpx;
+  margin-bottom: 24rpx;
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 8rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
 }
 
-.ann-card {
+.toggle-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  padding: 16rpx 24rpx;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  color: #666;
+  transition: all 0.3s;
+}
+
+.toggle-btn.active {
+  background: linear-gradient(135deg, #ffd4a8, #ffb3c1);
+  color: #fff;
+  font-weight: 600;
+}
+
+.toggle-icon {
+  font-size: 32rpx;
+}
+
+/* 日历视图 */
+.calendar-view {
   background: #fff;
   border-radius: 24rpx;
+  padding: 32rpx 24rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+}
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32rpx;
+}
+
+.month-nav {
+  width: 64rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48rpx;
+  color: #666;
+  border-radius: 50%;
+  background: #f5f5f5;
+}
+
+.month-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #222;
+}
+
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8rpx;
+  margin-bottom: 16rpx;
+}
+
+.weekday {
+  text-align: center;
+  font-size: 24rpx;
+  color: #999;
+  padding: 8rpx 0;
+}
+
+.calendar-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.calendar-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8rpx;
+}
+
+.calendar-day {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  border-radius: 12rpx;
+  background: #f8f8f8;
+  transition: all 0.2s;
+}
+
+.calendar-day.empty {
+  background: transparent;
+}
+
+.calendar-day.today {
+  background: linear-gradient(135deg, #ffd4a8, #ffb3c1);
+}
+
+.calendar-day.today .day-number {
+  color: #fff;
+  font-weight: 600;
+}
+
+.calendar-day.has-ann {
+  background: #fff5e6;
+  border: 2rpx solid #ffd4a8;
+}
+
+.day-number {
+  font-size: 26rpx;
+  color: #333;
+}
+
+.ann-dot {
+  position: absolute;
+  bottom: 8rpx;
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: #ff9800;
+}
+
+.calendar-day.today .ann-dot {
+  background: #fff;
+}
+
+/* 列表视图(即将到来) */
+.upcoming-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.list-header {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #222;
+  margin-bottom: 8rpx;
+  padding: 0 8rpx;
+}
+
+.no-upcoming {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 80rpx 32rpx;
+  text-align: center;
+  color: #999;
+  font-size: 28rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+}
+
+.upcoming-card {
+  background: #fff;
+  border-radius: 20rpx;
   padding: 24rpx 28rpx;
   display: flex;
   align-items: center;
   gap: 16rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
 }
 
-.ann-card.is-today {
-  border: 2rpx solid #ffb74d;
+.upcoming-card.is-today {
+  border: 2rpx solid #ff9800;
+  background: linear-gradient(135deg, #fff5e6, #ffe8f0);
 }
 
-.ann-main {
+.upcoming-main {
   flex: 1;
   min-width: 0;
 }
 
-.ann-row {
+.upcoming-row {
   display: flex;
   align-items: center;
-  gap: 12rpx;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-bottom: 8rpx;
 }
 
-.ann-title {
+.upcoming-title {
   flex: 1;
   font-size: 30rpx;
   font-weight: 500;
@@ -80,30 +243,34 @@
   white-space: nowrap;
 }
 
-.today-tag {
+.upcoming-label {
   flex-shrink: 0;
-  font-size: 22rpx;
+  font-size: 24rpx;
   color: #fff;
-  background: #ff9800;
-  padding: 4rpx 12rpx;
-  border-radius: 8rpx;
+  background: #07c160;
+  padding: 4rpx 16rpx;
+  border-radius: 12rpx;
+  font-weight: 500;
 }
 
-.ann-meta {
-  margin-top: 8rpx;
+.upcoming-label.today-label {
+  background: #ff9800;
+}
+
+.upcoming-meta {
   font-size: 24rpx;
   color: #999;
 }
 
-.ann-meta .dot {
+.upcoming-meta .dot {
   margin: 0 8rpx;
 }
 
-.ann-del {
+.upcoming-del {
   flex-shrink: 0;
-  font-size: 26rpx;
+  font-size: 24rpx;
   color: #e64340;
-  padding: 12rpx 8rpx;
+  padding: 8rpx 12rpx;
 }
 
 .fab {
@@ -124,8 +291,14 @@
   z-index: 10;
 }
 
-.empty-visible .empty-title { color: #111 !important; }
-.empty-visible .empty-desc { color: #333 !important; }
+.empty-visible .empty-title {
+  color: #111 !important;
+}
+
+.empty-visible .empty-desc {
+  color: #333 !important;
+}
+
 .empty-visible .empty-cta {
   background: #07c160 !important;
   color: #fff !important;
