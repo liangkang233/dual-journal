@@ -25,6 +25,26 @@
       {
         "type": "folder",
         "value": "assets/generated"
+      },
+      {
+        "type": "folder",
+        "value": "scripts"
+      },
+      {
+        "type": "folder",
+        "value": "node_modules"
+      },
+      {
+        "type": "folder",
+        "value": "tmp-preview"
+      },
+      {
+        "type": "file",
+        "value": "package.json"
+      },
+      {
+        "type": "file",
+        "value": "package-lock.json"
       }
     ],
     "include": []
@@ -79,5 +99,5 @@
   "simulatorPluginLibVersion": {},
   "editorSetting": {},
   "cloudfunctionRoot": "cloudfunctions/",
-  "version": "0.1.2"
+  "version": "0.1.3"
 }
