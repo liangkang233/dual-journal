@@ -2,7 +2,7 @@ const cloud = require('wx-server-sdk')
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
-const CODE_RE = /^[A-Z0-9]{6}$/
+const CODE_RE = /^[A-HJ-NP-Z2-9]{6}$/
 const MAX_MEMBERS = 2
 
 function isInviteCodeFormat(code) {
@@ -25,25 +25,28 @@ exports.main = async (event) => {
   const inviteCode = String(raw).trim().toUpperCase()
 
   if (!isInviteCodeFormat(inviteCode)) {
-    return { ok: false, error: '邀请码格式不正确，请输入 6 位大写字母或数字' }
+    return { ok: false, error: '邀请码格式不正确，请输入 6 位字符（不含 0O1IL）' }
   }
 
   const now = Date.now()
 
   try {
-    // 已在某个 pair 中则直接返回（避免重复加入）
     const mine = await db
       .collection('pairs')
       .where({ memberOpenids: OPENID })
       .limit(1)
       .get()
 
+    let myPair = null
     if (mine.data && mine.data.length > 0) {
-      const myPair = mine.data[0]
+      myPair = mine.data[0]
       if (myPair.inviteCode === inviteCode) {
         return { ok: true, pairId: myPair._id }
       }
-      return { ok: false, error: '你已在其他配对中，无法再加入' }
+      const myMembers = myPair.memberOpenids || []
+      if (myMembers.length >= 2) {
+        return { ok: false, error: '你已在其他配对中，无法再加入' }
+      }
     }
 
     const found = await db
@@ -89,16 +92,42 @@ exports.main = async (event) => {
     const newMembers = members.concat([OPENID])
     const full = newMembers.length >= MAX_MEMBERS
 
+    const updateData = {
+      memberOpenids: newMembers,
+      inviteActive: !full,
+      updatedAt: now,
+    }
+    if (full) {
+      updateData.inviteCode = ''
+    }
+
     await db
       .collection('pairs')
       .doc(pair._id)
       .update({
-        data: {
-          memberOpenids: newMembers,
-          inviteActive: !full,
-          updatedAt: now,
-        },
+        data: updateData,
       })
+
+    if (myPair && myPair.memberOpenids && myPair.memberOpenids.length === 1) {
+      const [entriesRes, todosRes, anniRes] = await Promise.all([
+        db.collection('entries').where({ pairId: myPair._id }).count(),
+        db.collection('todos').where({ pairId: myPair._id }).count(),
+        db.collection('anniversaries').where({ pairId: myPair._id }).count(),
+      ])
+      
+      const hasData = entriesRes.total > 0 || todosRes.total > 0 || anniRes.total > 0
+      
+      if (hasData) {
+        const _ = db.command
+        await Promise.all([
+          db.collection('entries').where({ pairId: myPair._id }).update({ data: { pairId: pair._id } }),
+          db.collection('todos').where({ pairId: myPair._id }).update({ data: { pairId: pair._id } }),
+          db.collection('anniversaries').where({ pairId: myPair._id }).update({ data: { pairId: pair._id } }),
+        ])
+      }
+      
+      await db.collection('pairs').doc(myPair._id).remove()
+    }
 
     return { ok: true, pairId: pair._id }
   } catch (err) {
