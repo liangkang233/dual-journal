@@ -1,47 +1,107 @@
 # P0配对同步bug修复说明
 
+> 对应QA清单: `docs/qa/p0-pair-checklist.md` (PR #1)  
+> 修复分支: `cursor/fix-p0-pair-sync-bugs-6cd4`  
+> PR: #2
+
 ## 修复概述
 
-本次修复解决了双人见闻小程序中solo/dual配对状态同步的核心问题。
+本次修复解决了双人见闻小程序中solo/dual配对状态同步的核心问题,对应QA清单TC-P0-1～4。
 
 ## 已修复的问题
 
-### TC-P0-1: `ensureSolo` 阻止加入逻辑
-**症状:** 用户可能在已有双人配对时创建冗余的solo pair。
+### TC-P0-1: ensureSolo 后无法用邀请码加入（HTTP / 云函数）
 
-**根本原因:** `getMyPair()` 使用 `.limit(1)` 无排序查询,当用户同时有solo和dual配对时,可能随机返回任一个。
+**对应缺陷**: `ensureSolo` 与 accept 互斥；HTTP `POST /api/pairs/accept`、`cloudfunctions/acceptInvite` 对「已有 pair」一律拒绝。
 
-**修复方案:**
-1. `getMyPair()` 现在查询所有用户的pair,优先返回双人配对(memberOpenids.length >= 2)
-2. 过滤掉已失效的solo pair(inviteActive=false且单人)
-3. `ensureSolo()` 检测到双人配对时直接返回,不再创建新的solo
+**症状**: 账号B冷启动后有个人空间(solo, memberCount=1),尝试接受A的邀请码时报错「你已在其他配对中,无法再加入」。
 
-### TC-P0-2: pairId漂移问题
-**症状:** 接受邀请后,客户端可能停留在错误的pairId上。
+**根本原因**: 
+- 原代码将solo pair等同于dual pair,一律阻止加入
+- 未区分「单人solo」和「真实双人配对」
 
-**根本原因:** 同TC-P0-1,`getMyPair()` 的随机性导致pairId不一致。
+**修复方案**:
+1. `acceptInvite` 现在检查是否已在**双人配对**中(memberOpenids.length >= 2)
+2. **仅双人配对才阻止加入**新配对,solo不阻止
+3. 客户端(`acceptInviteLocal`)和云函数(`acceptInvite`)逻辑保持一致
+4. B接受邀请成功后,旧solo pair被标记为inactive
 
-**修复方案:** 通过修复`getMyPair()`优先返回dual pair解决。
+**验证**: B(有solo) → 接受A的邀请 → 成功加入,pairId变为A的pair,memberCount=2
 
-### TC-P0-3: 列表未按新pairId重新加载
-**症状:** 接受邀请后,entries/todos/anniversaries列表仍显示旧数据。
+### TC-P0-2: 云库直写加入成功后 pairId 漂移回旧 solo
 
-**根本原因:** 三个页面的`onShow()`处理器会检查`app.globalData.pairId`并加载数据,但依赖`getMyPair()`返回正确的pairId。
+**对应缺陷**: `acceptInviteLocal` 不离开旧 solo；`getMyPair().limit(1)` 无「优先双人」排序。
 
-**修复方案:** 
-1. 修复`getMyPair()`确保返回正确的dual pairId
-2. `acceptInvite`成功后调用`getMyPair()`更新globalData
-3. 当用户切换tab时,各页面的`onShow()`自动使用新pairId加载数据
+**症状**: 
+- B接受邀请后显示「加入成功」
+- 但切换tab后,pairId变回旧的solo pairId
+- 或者B的openid同时出现在两个pair的memberOpenids里
+- `getMyPair()`随机返回solo或dual
 
-### TC-P0-5: 模拟伙伴不应阻止真实双人配对
-**症状:** Solo pair(模拟的单人配对)可能阻止用户加入真实的双人配对。
+**根本原因**: 
+```javascript
+// 原代码 - 有严重问题!
+.where({ memberOpenids: openid })
+.limit(1)  // ❌ 无排序,随机返回第一个
+.get()
+```
+当用户同时有solo和dual pair时,`.limit(1)`可能返回任一个,导致pairId不稳定。
 
-**根本原因:** `acceptInvite`逻辑未区分solo和dual配对。
+**修复方案**:
+1. 移除`.limit(1)`,查询所有用户的pair
+2. 过滤掉已失效的solo pair (inviteActive=false且memberOpenids.length<2)
+3. **优先返回双人配对** `pairs.find(p => p.memberOpenids.length >= 2)`
+4. `acceptInvite`成功后标记旧solo为inactive,防止被`getMyPair`再次返回
 
-**修复方案:**
-1. `acceptInvite`现在检查是否已在双人配对中,只有双人配对才阻止加入新配对
-2. 接受邀请成功后,自动标记旧的solo pair为inactive(软删除)
-3. 云函数和客户端逻辑保持一致
+**验证**: B加入A后,切换tab多次,pairId始终稳定为dual pair ID
+
+### TC-P0-3: 加入成功后见闻/待办/纪念未按新 pairId 立刻拉对
+
+**对应缺陷**: accept 后只刷配对页；列表依赖可能错误的 `globalData.pairId`；无配对变更强制重拉。
+
+**症状**:
+- A在dual pair下创建entry/todo/anniversary,内容标记`A-sync`
+- B接受邀请,Toast显示「加入成功」
+- B立刻切换到见闻/待办/纪念tab,**看不到**A的`A-sync`条目
+- 或者B的pairId错误,列表仍是solo数据
+
+**根本原因**:
+- `getMyPair()`的随机性导致可能返回错误的pairId
+- 各页面的`onShow()`虽然会重新加载,但使用的是`app.globalData.pairId`
+- 如果pairId错误,加载的就是错误pair的数据
+
+**修复方案**:
+1. 修复`getMyPair()`确保返回正确的dual pairId (见TC-P0-2)
+2. `pages/pair/index.js` 中`acceptInvite`成功后调用`this.refresh()`
+3. `refresh()`内部调用`pairService.getMyPair()`,更新`app.globalData.pairId`
+4. 各页面(`pages/feed|todos|anniversaries/index.js`)的`onShow()`已有逻辑:
+   ```javascript
+   const paired = !!(app.globalData && app.globalData.pairId)
+   if (!paired) return
+   this.loadEntries() // 或 loadTodos/loadList
+   ```
+5. 当B切换tab时,`onShow()`自动使用新的pairId加载A的数据
+
+**验证**: B接受邀请后,第一次进入见闻/待办/纪念就能看到A的共享条目,B的pairId与A一致
+
+### TC-P0-5: 模拟第二人后堵死真实双人
+
+**对应缺陷**: `simulateDevPartner` 占满 2 人并清邀请码；HTTP 不支持模拟。
+
+**当前状态**: ⚠️ **代码中尚未实现`simulateDevPartner`调试功能**
+
+根据QA清单,这是一个开发版debug功能:
+- 点击「模拟第二人加入」后,memberCount变2,但第二人是假的(`dev_partner_*`)
+- 问题: 模拟占满2人名额后,真实第二人无法加入
+- 期望: 有「清除模拟搭档」,或真实accept自动踢掉模拟伙伴
+
+**修复方案**: 
+当前代码中不存在此功能,**TC-P0-5暂不适用**。
+
+如果未来实现此功能,建议:
+1. `acceptInvite`时检测memberOpenids中是否有`dev_partner_`前缀
+2. 如果有,自动移除模拟伙伴,替换为真实用户
+3. 或在UI上提供「清除模拟搭档」按钮
 
 ## TC-P0-4: Solo历史迁移 - 产品待定
 
