@@ -62,21 +62,14 @@
 
         <view class="calendar-body">
           <view 
-            class="calendar-week" 
-            wx:for="{{calendarMatrix}}" 
+            class="calendar-day {{item.day ? '' : 'empty'}} {{item.isToday ? 'today' : ''}} {{item.hasAnniversary ? 'has-ann' : ''}}"
+            wx:for="{{calendarCells}}"
             wx:key="index"
+            data-date="{{item.date}}"
+            bindtap="onDayTap"
           >
-            <view 
-              class="calendar-day {{day.day ? '' : 'empty'}} {{day.isToday ? 'today' : ''}} {{day.hasAnniversary ? 'has-ann' : ''}}"
-              wx:for="{{item}}"
-              wx:for-item="day"
-              wx:key="index"
-              data-date="{{day.date}}"
-              bindtap="onDayTap"
-            >
-              <text class="day-number">{{day.day || ''}}</text>
-              <view wx:if="{{day.hasAnniversary}}" class="ann-dot"></view>
-            </view>
+            <text class="day-number">{{item.day || ''}}</text>
+            <view wx:if="{{item.hasAnniversary}}" class="ann-dot"></view>
           </view>
         </view>
       </view>

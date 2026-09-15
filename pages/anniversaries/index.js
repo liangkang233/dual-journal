@@ -28,6 +28,7 @@ Page({
     currentMonth: new Date().getMonth() + 1,
     monthTitle: '',
     calendarMatrix: [],
+    calendarCells: [],
     anniversaryDates: {},
     
     // 列表数据
@@ -193,7 +194,11 @@ Page({
       })
     })
     
-    this.setData({ calendarMatrix: matrix, monthTitle })
+    const calendarCells = []
+    matrix.forEach((week) => {
+      week.forEach((day) => calendarCells.push(day))
+    })
+    this.setData({ calendarMatrix: matrix, calendarCells, monthTitle })
   },
   
   toggleViewMode() {

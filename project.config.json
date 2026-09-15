@@ -1,6 +1,6 @@
 {
   "description": "最小可分享小程序",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "packOptions": {
     "ignore": [
       {
