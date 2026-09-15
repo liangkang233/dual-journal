@@ -15,6 +15,8 @@ Page({
     emptyDesc: '登录后会自动创建个人空间，可立即添加待办',
     bgClass: 'page-bg page-bg-warm',
     bgStyle: '',
+    _lastPairId: '',
+    _lastLoadedAt: 0,
   },
 
   onShow() {
@@ -22,14 +24,34 @@ Page({
     const boot = app.ensureLogin ? app.ensureLogin() : Promise.resolve()
     boot.then(() => {
       const paired = !!(app.globalData && app.globalData.pairId)
+      const pairId = (app.globalData && app.globalData.pairId) || ''
       this.setData({ paired })
-      if (!paired) return
-      this.loadTodos()
+      if (!paired) {
+        this.setData({ _lastPairId: '', _lastLoadedAt: 0 })
+        return
+      }
+
+      const now = Date.now()
+      const lastPairId = this.data._lastPairId
+      const lastLoadedAt = this.data._lastLoadedAt
+      const hasData = this.data.todos && this.data.todos.length > 0
+      const TTL = 20 * 1000
+      const isFresh = pairId === lastPairId && (now - lastLoadedAt) < TTL
+      const pairChanged = pairId !== lastPairId
+
+      if (pairChanged) {
+        this.setData({ _lastPairId: pairId, _lastLoadedAt: 0 })
+        this.loadTodos(true)
+      } else if (!hasData || !isFresh) {
+        this.loadTodos(!hasData)
+      }
     })
   },
 
-  loadTodos() {
-    this.setData({ loading: true })
+  loadTodos(showLoading) {
+    if (showLoading) {
+      this.setData({ loading: true })
+    }
     todosService
       .listTodos()
       .then((list) => {
@@ -48,7 +70,7 @@ Page({
             done: item.status === 'done',
           })
         })
-        this.setData({ todos, loading: false })
+        this.setData({ todos, loading: false, _lastLoadedAt: Date.now() })
       })
       .catch((err) => {
         console.error(err)
@@ -97,7 +119,7 @@ Page({
     const nextStatus = done ? 'open' : 'done'
     todosService
       .setTodoStatus(id, nextStatus)
-      .then(() => this.loadTodos())
+      .then(() => this.loadTodos(false))
       .catch((err) => {
         wx.showToast({ title: err.message || '更新失败', icon: 'none' })
       })
@@ -117,7 +139,7 @@ Page({
           .removeTodo(id)
           .then(() => {
             wx.showToast({ title: '已删除', icon: 'success' })
-            this.loadTodos()
+            this.loadTodos(false)
           })
           .catch((err) => {
             wx.showToast({ title: err.message || '删除失败', icon: 'none' })
@@ -130,12 +152,13 @@ Page({
     const boot = app.ensureLogin ? app.ensureLogin() : Promise.resolve()
     boot.then(() => {
       const paired = !!(app.globalData && app.globalData.pairId)
-      this.setData({ paired })
+      const pairId = (app.globalData && app.globalData.pairId) || ''
+      this.setData({ paired, _lastPairId: pairId, _lastLoadedAt: 0 })
       if (!paired) {
         wx.stopPullDownRefresh()
         return
       }
-      this.loadTodos()
+      this.loadTodos(false)
       setTimeout(() => wx.stopPullDownRefresh(), 400)
     })
   },
