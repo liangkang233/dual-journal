@@ -164,38 +164,83 @@ function migrateDataFromSoloToDual(oldPairId, newPairId, options) {
 
 ## 手动验证测试用例
 
-### TC-P0-1: ensureSolo阻止
-1. 用户A生成邀请码
-2. 用户B接受邀请(现在A和B在dual pair中)
-3. 用户A调用`ensureSolo()`
-4. ✅ 预期:返回现有的dual pair,不创建新的solo
+以下测试步骤完全对应 `docs/qa/p0-pair-checklist.md` 中的TC-P0-1～5。
 
-### TC-P0-2: pairId一致性
-1. 用户B接受邀请前,可能有solo pair
-2. 用户B接受邀请加入dual pair
-3. 用户B刷新页面或重新调用`getMyPair()`
-4. ✅ 预期:始终返回dual pair的ID,不会漂移到solo pair
+### 前置条件
+- 使用开发版编译
+- 后端切换: 修改`config.local.js`的`dataBackend`为`cloud`或`http`
+- 准备账号A/B: 真机两微信号,或云开发两模拟openid
+- **每条用例前**清理该openid在`pairs`中的旧数据
+- 观察点: 「我们」页debug的`pairId`、`memberCount`、backend
 
-### TC-P0-3: 列表重新加载
-1. 用户B在solo状态下创建entry1
-2. 用户B接受邀请加入双人配对
-3. 用户B切换到"见闻"tab
-4. ✅ 预期:列表显示空(或仅显示双人配对的数据)
-5. 用户B在双人配对下创建entry2
-6. 用户A切换到"见闻"tab
-7. ✅ 预期:A看到entry2
+### TC-P0-1: ensureSolo 后无法用邀请码加入
 
-### TC-P0-4: Solo历史迁移
-**当前行为:** 不迁移,用户solo历史不会显示在dual pair中
-**产品待定:** 是否需要实现迁移
+**步骤**:
+1. 设 `dataBackend: 'http'`(或cloud,并让accept落到云函数)
+2. 账号B冷启动小程序,进「我们」,确认已有个人空间(`memberCount=1`)
+3. 账号A生成邀请码并复制
+4. 账号B在「输入邀请码加入」填A的码,点「加入配对」
 
-### TC-P0-5: 真实配对优先
-1. 用户C有solo pair
-2. 用户D生成邀请码
-3. 用户C接受D的邀请
-4. ✅ 预期:C成功加入D的dual pair
-5. ✅ 预期:C的旧solo pair被标记为inactive
-6. ✅ 预期:C的`getMyPair()`返回dual pair
+**通过标准**:
+- ✅ B加入成功
+- ✅ `pairId`变为A的pair; `memberCount=2`
+- ✅ 不再报「已在其他配对」
+
+### TC-P0-2: 云库直写加入成功后 pairId 漂移回旧 solo
+
+**步骤**:
+1. 设 `dataBackend: 'cloud'`,库直写可用
+2. A、B各冷启动一次,各自确保已有solo; debug记下B的旧`pairId_solo`
+3. A生成邀请码; B输入并「加入配对」,应出现「加入成功」
+4. 立刻看B的debug: `pairId`是否已是A的pair
+5. B切到「见闻」再切回「我们」,或下拉/再进一次「我们」
+6. 云库查`pairs`: B的openid是否仍同时出现在两个pair的`memberOpenids`里
+
+**通过标准**:
+- ✅ 全程`pairId`稳定为双人pair
+- ✅ B旧solo已删除或已无B
+- ✅ `getMyPair`不会再抽到旧solo
+
+### TC-P0-3: 加入成功后见闻/待办/纪念未按新 pairId 立刻拉对
+
+**步骤**:
+1. 在能真正加入的前提下(已修P0-1/2,或人为清掉B的solo再accept)
+2. A在双人pair下先写1条见闻、1条待办、1条纪念(内容带标记如`A-sync`)
+3. B用邀请码加入成功(Toast「加入成功」)
+4. 不杀进程: B立刻依次打开见闻、待办、纪念Tab
+5. 可选: B一直停在「我们」; A再新写一条; B再切Tab看是否出现
+
+**通过标准**:
+- ✅ B加入成功后,第一次进入见闻/待办/纪念就能看到A的共享条目
+- ✅ B的`pairId`与A一致
+
+### TC-P0-4: solo 历史不随真实配对迁移
+
+**步骤**:
+1. B仅在solo下写见闻`B-solo-entry`、待办`B-solo-todo`、纪念`B-solo-anni`,记下当时`pairId_solo`
+2. B成功加入A的双人pair(`pairId_dual`)
+3. 在双人pair下看B与A的三列表是否出现上述三条
+4. 库中查这三条文档的`pairId`字段
+
+**当前实现**:
+- 列表在`pairId_dual`下看不到B的旧三条
+- 文档仍挂`pairId_solo`
+- **产品待定**: 是否需要迁移(见本文档TC-P0-4章节)
+
+### TC-P0-5: 模拟第二人后堵死真实双人
+
+**当前状态**: ⚠️ 代码中尚未实现`simulateDevPartner`功能,**此测试用例暂不适用**
+
+**QA清单期望步骤**:
+1. 设`dataBackend: 'cloud'`,开发版,账号A进入「我们」
+2. 点debug「模拟第二人加入」,Toast「已模拟双人」,`memberCount=2`
+3. A再点「生成邀请码」
+4. 另开账号C(真实第二人)尝试加入A的pair
+5. 切换`dataBackend: 'http'`,重复步骤2
+
+**通过标准** (未来实现时):
+- 有「清除模拟搭档」,或真实accept自动踢掉`dev_partner_*`
+- 清除后可生成码并让真实第二人加入
 
 ## 技术细节
 
