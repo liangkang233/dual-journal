@@ -239,16 +239,19 @@ app.post('/api/pairs/accept', requireAuth, (req, res) => {
       .json({ error: '邀请码格式不正确，请输入 6 位字符（不含 0O1IL）' })
   }
 
+  // TC-P0-1 fix: 区分solo和dual pair,仅dual阻止加入
   const mine = findPairByMember(openid)
   let myMembers = []
   if (mine) {
-    if (mine.invite_code === inviteCode) {
-      return res.json({ pairId: mine._id })
-    }
-    myMembers = JSON.parse(mine.member_openids || '[]')
-    if (myMembers.length >= 2) {
+    const myMembers = JSON.parse(mine.member_openids || '[]')
+    // 如果已在双人配对中,检查是否同一邀请码
+    if (myMembers.length >= MAX_MEMBERS) {
+      if (mine.invite_code === inviteCode) {
+        return res.json({ pairId: mine._id })
+      }
       return res.status(400).json({ error: '你已在其他配对中，无法再加入' })
     }
+    // 如果是solo,可以继续加入新配对(将在后面标记旧solo为inactive)
   }
 
   const found = db
@@ -302,6 +305,13 @@ app.post('/api/pairs/accept', requireAuth, (req, res) => {
       db.prepare('UPDATE anniversaries SET pair_id = ? WHERE pair_id = ?').run(found._id, mine._id)
       db.prepare('DELETE FROM pairs WHERE _id = ?').run(mine._id)
     }
+  }
+
+  // TC-P0-1/2 fix: 标记旧solo为inactive(软删除)
+  if (mine && JSON.parse(mine.member_openids || '[]').length === 1) {
+    db.prepare(
+      `UPDATE pairs SET invite_active = 0, inactivated_at = ?, updated_at = ? WHERE _id = ?`
+    ).run(now, now, mine._id)
   }
 
   res.json({ pairId: found._id })

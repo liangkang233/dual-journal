@@ -88,20 +88,40 @@
 
 **对应缺陷**: `simulateDevPartner` 占满 2 人并清邀请码；HTTP 不支持模拟。
 
-**当前状态**: ⚠️ **代码中尚未实现`simulateDevPartner`调试功能**
+**当前状态**: 
+经过代码审查,本PR**未删除或修改**任何simulate相关代码。在`adapters/cloud/pair.js`和`pages/pair/index.js`中均未找到`simulateDevPartner`函数或相关导出。
 
-根据QA清单,这是一个开发版debug功能:
+**如果此功能存在于其他分支或计划实现**:
+
+根据QA清单描述,这应是一个开发版debug功能:
 - 点击「模拟第二人加入」后,memberCount变2,但第二人是假的(`dev_partner_*`)
 - 问题: 模拟占满2人名额后,真实第二人无法加入
 - 期望: 有「清除模拟搭档」,或真实accept自动踢掉模拟伙伴
 
-**修复方案**: 
-当前代码中不存在此功能,**TC-P0-5暂不适用**。
+**建议实现方案**:
 
-如果未来实现此功能,建议:
-1. `acceptInvite`时检测memberOpenids中是否有`dev_partner_`前缀
-2. 如果有,自动移除模拟伙伴,替换为真实用户
-3. 或在UI上提供「清除模拟搭档」按钮
+```javascript
+// 在acceptInvite中添加逻辑
+function acceptInviteLocal(inviteCode) {
+  // ... 现有逻辑 ...
+  
+  // 检查目标pair的members中是否有模拟伙伴
+  const members = pair.memberOpenids || []
+  const hasDevPartner = members.some(id => 
+    typeof id === 'string' && id.startsWith('dev_partner_')
+  )
+  
+  if (hasDevPartner && members.length >= 2) {
+    // 移除模拟伙伴,为真实用户腾出位置
+    const realMembers = members.filter(id => !id.startsWith('dev_partner_'))
+    const nextMembers = realMembers.concat([openid])
+    // ... 更新pair ...
+  }
+  // ... 继续正常流程 ...
+}
+```
+
+或在UI上提供「清除模拟搭档」按钮,手动调用清理函数。
 
 ## TC-P0-4: Solo历史迁移 - 产品待定
 

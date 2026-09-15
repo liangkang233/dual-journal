@@ -26,12 +26,13 @@ function getMyPair() {
     .then((res) => {
       let pairs = res.data || []
       
-      // 过滤掉已失效的solo pair（单人且有inactivatedAt），这些是加入dual pair后留下的
-      // 但保留双人配对，即使有inactivatedAt（满员后邀请会失效，但配对仍有效）
+      // 过滤掉已软删除的solo pair（单人且有inactivatedAt标记）
+      // 保留所有双人配对（即使inviteActive=false，满员后邀请会失效但配对仍有效）
+      // 保留正常solo（inviteActive可能是false，但没有inactivatedAt标记）
       pairs = pairs.filter((p) => {
         const memberCount = (p.memberOpenids || []).length
-        if (memberCount >= 2) return true
-        // 单人solo: 如果有inactivatedAt就过滤掉
+        if (memberCount >= 2) return true  // 保留所有dual pair
+        // 仅过滤掉明确标记为inactive的solo（有inactivatedAt字段）
         return !p.inactivatedAt
       })
       
