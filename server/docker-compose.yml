@@ -1,0 +1,19 @@
+services:
+  dual-journal-server:
+    build: .
+    container_name: dual-journal-server
+    ports:
+      - "${PORT:-8787}:8787"
+    volumes:
+      - db-data:/app/data
+      - uploads-data:/app/uploads
+    environment:
+      - PORT=8787
+      - NODE_ENV=production
+    restart: unless-stopped
+
+volumes:
+  db-data:
+    name: dual-journal_db-data
+  uploads-data:
+    name: dual-journal_uploads-data
