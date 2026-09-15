@@ -64,6 +64,7 @@ Page({
     lastError: '',
     cloudEnvId: '',
     dataBackend: '',
+    _lastLoadedAt: 0,
   },
 
   onLoad(options) {
@@ -162,6 +163,16 @@ Page({
 
   refresh() {
     const openid = (app.globalData && app.globalData.openid) || ''
+    const now = Date.now()
+    const lastLoadedAt = this.data._lastLoadedAt
+    const hasData = this.data.hasPair || this.data.paired
+    const TTL = 20 * 1000
+    const isFresh = hasData && (now - lastLoadedAt) < TTL
+
+    if (isFresh) {
+      return Promise.resolve()
+    }
+
     this.setData({ openid: openid, loading: true, statusText: '同步配对状态…' })
 
     const run = () =>
@@ -184,6 +195,7 @@ Page({
               bgFileId: '',
               bgClass: 'page-bg page-bg-warm',
               bgStyle: '',
+              _lastLoadedAt: Date.now(),
             })
             return
           }
@@ -203,6 +215,7 @@ Page({
             statusText: paired
               ? '已配对，两人共享同一份见闻本'
               : '已有个人空间（可用见闻/待办），等待对方加入（最多 2 人）',
+            _lastLoadedAt: Date.now(),
           })
           return this.applyBgFromPair(pair).then(() => this.checkSubscription())
         })
@@ -214,7 +227,6 @@ Page({
           })
         })
 
-    // Always prefer ensureLogin so http mode can ensure-solo
     if (app.ensureLogin) {
       return app.ensureLogin().then(() => {
         const nextOpenid = (app.globalData && app.globalData.openid) || ''
@@ -341,7 +353,7 @@ Page({
     pairService
       .acceptInvite(code)
       .then(() => {
-        this.setData({ accepting: false })
+        this.setData({ accepting: false, _lastLoadedAt: 0 })
         wx.showToast({ title: '加入成功', icon: 'success' })
         return this.refresh()
       })
@@ -366,6 +378,7 @@ Page({
       .then(() => {
         wx.showToast({ title: '已模拟双人', icon: 'success' })
         pushDebug(this, 'simulateDevPartner ok')
+        this.setData({ _lastLoadedAt: 0 })
         return this.refresh()
       })
       .catch((err) => {

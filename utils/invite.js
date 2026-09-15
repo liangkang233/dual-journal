@@ -1,5 +1,5 @@
 const CHARSET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789' // 去掉 0O1IL 易混字符
-const CODE_RE = /^[A-Z0-9]{6}$/
+const CODE_RE = /^[A-HJ-NP-Z2-9]{6}$/
 
 function generateInviteCode() {
   let code = ''

@@ -17,6 +17,10 @@
       },
       {
         "type": "folder",
+        "value": "scripts"
+      },
+      {
+        "type": "folder",
         "value": "node_modules"
       },
       {
@@ -25,23 +29,23 @@
       },
       {
         "type": "folder",
-        "value": "scripts"
+        "value": ".git"
       },
       {
         "type": "folder",
-        "value": ".git"
+        "value": "assets/generated"
       },
       {
         "type": "file",
         "value": "package.json"
       },
       {
-        "type": "suffix",
-        "value": ".md"
+        "type": "file",
+        "value": "package-lock.json"
       },
       {
-        "type": "folder",
-        "value": "assets/generated"
+        "type": "suffix",
+        "value": ".md"
       }
     ],
     "include": []
