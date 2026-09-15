@@ -94,27 +94,11 @@ function requireAuth(req, res, next) {
  */
 function findPairByMember(openid) {
   const rows = db.prepare('SELECT * FROM pairs').all()
-<<<<<<< HEAD
-  let foundSolo = null
-  let foundPair = null
-=======
   const userPairs = []
->>>>>>> 5712085 (fix: HTTP backend alignment - schema and getMyPair logic)
   
   for (const row of rows) {
     const members = JSON.parse(row.member_openids || '[]')
     if (Array.isArray(members) && members.indexOf(openid) >= 0) {
-<<<<<<< HEAD
-      if (members.length >= 2) {
-        return row
-      } else if (!foundSolo) {
-        foundSolo = row
-      }
-    }
-  }
-  
-  return foundSolo
-=======
       userPairs.push(row)
     }
   }
@@ -138,7 +122,6 @@ function findPairByMember(openid) {
   })
   
   return dualPair || activePairs[0]
->>>>>>> 5712085 (fix: HTTP backend alignment - schema and getMyPair logic)
 }
 
 function getPairRow(id) {

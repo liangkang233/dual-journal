@@ -7,8 +7,14 @@ const { generateInviteCode } = require('../../utils/invite')
 
 /**
  * 查询当前用户所在的 pair（云数据库 pairs，memberOpenids 含 openid）
- * 优先返回双人配对（真实配对），而非单人solo配对
- * 过滤掉已失效的pair（有inactivatedAt且单人）
+ * 
+ * 逻辑 (TC-P0-2修复):
+ * 1. 查询所有包含当前用户的pair
+ * 2. 过滤掉已软删除的solo pair (单人且有inactivatedAt标记)
+ * 3. 优先返回双人配对 (memberOpenids.length >= 2)
+ * 
+ * 注: inviteActive仅表示邀请状态,不用于软删除标记
+ * 
  * @returns {Promise<object|null>}
  */
 function getMyPair() {
@@ -26,14 +32,11 @@ function getMyPair() {
     .then((res) => {
       let pairs = res.data || []
       
-      // 过滤掉已软删除的solo pair（单人且有inactivatedAt标记）
-      // 保留所有双人配对（即使inviteActive=false，满员后邀请会失效但配对仍有效）
-      // 保留正常solo（inviteActive可能是false，但没有inactivatedAt标记）
+      // 过滤: 保留所有dual pair; 对solo仅保留未软删除的 (无inactivatedAt)
       pairs = pairs.filter((p) => {
         const memberCount = (p.memberOpenids || []).length
         if (memberCount >= 2) return true  // 保留所有dual pair
-        // 仅过滤掉明确标记为inactive的solo（有inactivatedAt字段）
-        return !p.inactivatedAt
+        return !p.inactivatedAt  // solo: 仅保留未软删除的
       })
       
       if (pairs.length === 0) {
