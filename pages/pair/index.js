@@ -10,14 +10,27 @@ const {
 const SUBSCRIBE_TMPL_ID = 'SUBSCRIBE_TMPL_ID'
 
 
+
+function pushDebug(page, line) {
+  const stamp = new Date().toISOString().slice(11, 19)
+  const rows = (page.data.debugLines || []).slice()
+  rows.unshift('[' + stamp + '] ' + line)
+  page.setData({ debugLines: rows.slice(0, 30) })
+}
+
 function formatCloudErr(err) {
   if (!err) return '操作失败'
   const code = err.errCode || err.code
   if (code === -601034) {
     return '未开通云服务：开发者工具打开「云开发」并绑定本环境'
   }
+  if (code === -501000 || /Environment not found|INVALID_ENV/i.test(String(err.message || err.errMsg || ''))) {
+    return '云环境不存在：请到云开发复制真实环境 ID，写入 config.local.js 的 cloudEnvId'
+  }
   return err.message || err.errMsg || '操作失败'
 }
+
+const INVITE_COOLDOWN_MS = 10 * 1000
 
 Page({
   data: {
@@ -31,6 +44,8 @@ Page({
     inputCode: '',
     loading: false,
     generating: false,
+    simulating: false,
+    inviteCooldownSec: 0,
     accepting: false,
     statusText: '加载中…',
     subscribeAuthorized: false,
@@ -43,6 +58,12 @@ Page({
     bgClass: 'page-bg page-bg-warm',
     bgStyle: '',
     bgSaving: false,
+    showDebug: false,
+    envVersion: '',
+    debugLines: [],
+    lastError: '',
+    cloudEnvId: '',
+    dataBackend: '',
   },
 
   onLoad(options) {
@@ -53,8 +74,70 @@ Page({
   },
 
   onShow() {
+    const cfg = require('../../config/index')
+    const isDev = !!(app.globalData && app.globalData.isDevBuild)
+    this.setData({
+      cloudEnvId: cfg.cloudEnvId || '',
+      dataBackend: cfg.dataBackend || '',
+      showDebug: isDev,
+      envVersion: (app.globalData && app.globalData.envVersion) || '',
+    })
+    if (isDev) {
+      pushDebug(this, 'onShow backend=' + (cfg.dataBackend || '') + ' env=' + (cfg.cloudEnvId || '') + ' envVersion=develop')
+    }
     this.refresh()
   },
+
+  onToggleDebug() {
+    this.setData({ showDebug: !this.data.showDebug })
+  },
+
+  onCopyDebug() {
+    const text = [
+      'backend=' + this.data.dataBackend,
+      'env=' + this.data.cloudEnvId,
+      'openid=' + this.data.openid,
+      'pairId=' + ((getApp().globalData && getApp().globalData.pairId) || ''),
+      'hasPair=' + this.data.hasPair,
+      'memberCount=' + this.data.memberCount,
+      'invite=' + this.data.inviteCode,
+      'lastError=' + this.data.lastError,
+      '',
+      (this.data.debugLines || []).join('\n'),
+    ].join('\n')
+    wx.setClipboardData({ data: text })
+  },
+
+  onProbeCloud() {
+    const page = this
+    pushDebug(page, 'probe: start')
+    const hasCloud = !!(wx.cloud)
+    pushDebug(page, 'wx.cloud=' + hasCloud)
+    if (!hasCloud) {
+      page.setData({ lastError: '基础库无云能力' })
+      return
+    }
+    const db = wx.cloud.database()
+    db.collection('pairs')
+      .limit(1)
+      .get()
+      .then((res) => {
+        pushDebug(page, 'db.pairs.get ok count=' + ((res.data && res.data.length) || 0))
+        return wx.cloud.callFunction({ name: 'login' })
+      })
+      .then((res) => {
+        const oid = res && res.result && res.result.openid
+        pushDebug(page, 'callFunction login ok openid=' + (oid || ''))
+        wx.showToast({ title: '云探测成功', icon: 'success' })
+      })
+      .catch((err) => {
+        const msg = formatCloudErr(err)
+        page.setData({ lastError: msg })
+        pushDebug(page, 'probe fail: ' + msg + ' code=' + (err.errCode || err.code || ''))
+        wx.showToast({ title: msg.slice(0, 20), icon: 'none' })
+      })
+  },
+
 
   onShareAppMessage() {
     const code = this.data.inviteCode
@@ -200,7 +283,15 @@ Page({
       wx.showToast({ title: '已满员，无法生成', icon: 'none' })
       return
     }
-    this.setData({ generating: true })
+    const lastAt = Number(wx.getStorageSync('invite_last_generate_at') || 0)
+    const waitMs = INVITE_COOLDOWN_MS - (Date.now() - lastAt)
+    if (lastAt && waitMs > 0) {
+      const sec = Math.ceil(waitMs / 1000)
+      wx.showToast({ title: '请 ' + sec + ' 秒后再生成', icon: 'none' })
+      this.setData({ inviteCooldownSec: sec })
+      return
+    }
+    this.setData({ generating: true, inviteCooldownSec: 0 })
     pairService
       .createInvite()
       .then((res) => {
@@ -211,14 +302,31 @@ Page({
           memberCount: Math.max(this.data.memberCount, 1),
           hasPair: true,
           generating: false,
-          statusText: '邀请码已生成，48 小时内有效，可分享给对方',
+    simulating: false,
+          inviteCooldownSec: 10,
+          statusText: '邀请码已生成，10 分钟内有效，可分享给对方',
         })
-        wx.showToast({ title: '已生成邀请码', icon: 'success' })
+        try { wx.setStorageSync('invite_last_generate_at', Date.now()) } catch (e) {}
+        this._startInviteCooldownTick && this._startInviteCooldownTick()
+        pushDebug(this, 'createInvite ok code=' + res.inviteCode)
+        // 生成后自动复制，方便发给对方
+        wx.setClipboardData({
+          data: String(res.inviteCode || ''),
+          success() {
+            wx.showToast({ title: '已生成并复制', icon: 'success' })
+          },
+          fail() {
+            wx.showToast({ title: '已生成邀请码', icon: 'success' })
+          },
+        })
         return pairService.getMyPair()
       })
       .catch((err) => {
         this.setData({ generating: false })
-        wx.showToast({ title: formatCloudErr(err) || '生成失败', icon: 'none' })
+        const msg = formatCloudErr(err) || '生成失败'
+        this.setData({ lastError: msg })
+        pushDebug(this, 'createInvite fail: ' + msg)
+        wx.showToast({ title: msg.slice(0, 40), icon: 'none' })
       })
   },
 
@@ -239,17 +347,49 @@ Page({
       })
       .catch((err) => {
         this.setData({ accepting: false })
-        wx.showToast({ title: formatCloudErr(err) || '加入失败', icon: 'none' })
+        const msg = formatCloudErr(err) || '加入失败'
+        this.setData({ lastError: msg })
+        pushDebug(this, 'acceptInvite fail: ' + msg)
+        wx.showToast({ title: msg.slice(0, 40), icon: 'none' })
       })
   },
 
+  onSimulatePartner() {
+    if (!this.data.showDebug) return
+    if (this.data.simulating) return
+    this.setData({ simulating: true })
+    const run =
+      typeof pairService.simulateDevPartner === 'function'
+        ? pairService.simulateDevPartner()
+        : Promise.reject(new Error('当前后端不支持模拟配对'))
+    run
+      .then(() => {
+        wx.showToast({ title: '已模拟双人', icon: 'success' })
+        pushDebug(this, 'simulateDevPartner ok')
+        return this.refresh()
+      })
+      .catch((err) => {
+        const msg = (err && err.message) || '模拟失败'
+        this.setData({ lastError: msg })
+        pushDebug(this, 'simulateDevPartner fail: ' + msg)
+        wx.showToast({ title: msg.slice(0, 40), icon: 'none' })
+      })
+      .then(() => this.setData({ simulating: false }))
+  },
+
   onCopyCode() {
-    const code = this.data.inviteCode
-    if (!code) return
+    const code = String(this.data.inviteCode || '').trim().toUpperCase()
+    if (!code) {
+      wx.showToast({ title: '暂无邀请码', icon: 'none' })
+      return
+    }
     wx.setClipboardData({
       data: code,
       success() {
-        wx.showToast({ title: '已复制', icon: 'success' })
+        wx.showToast({ title: '邀请码已复制', icon: 'success' })
+      },
+      fail() {
+        wx.showToast({ title: '复制失败，请长按码手动复制', icon: 'none' })
       },
     })
   },

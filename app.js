@@ -10,9 +10,25 @@ App({
     pairId: '',
     pair: null,
     dataBackend: config.dataBackend,
+    envVersion: '',
+    isDevBuild: false,
   },
 
   onLaunch() {
+    // vConsole / 调试开关：仅开发版；体验版与正式版不开启
+    try {
+      const info = wx.getAccountInfoSync && wx.getAccountInfoSync()
+      const envVersion =
+        (info && info.miniProgram && info.miniProgram.envVersion) || ''
+      this.globalData.envVersion = envVersion
+      this.globalData.isDevBuild = envVersion === 'develop'
+      if (this.globalData.isDevBuild && wx.setEnableDebug) {
+        wx.setEnableDebug({ enableDebug: true })
+      }
+    } catch (e) {
+      this.globalData.envVersion = ''
+      this.globalData.isDevBuild = false
+    }
     if (config.dataBackend === 'cloud') {
       if (!wx.cloud) {
         console.error('请使用 2.2.3 或以上的基础库以使用云能力')

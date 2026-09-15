@@ -15,7 +15,7 @@ AppID：`wxe973b8825d2d5991`
 ```js
 module.exports = {
   dataBackend: 'cloud', // 或 'http'
-  cloudEnvId: 'test1-d3gl4me5obe3f13ce',
+  cloudEnvId: 'cloud1-d1gbvd1vw92534fc6',
   httpBaseUrl: '',      // 自建 API 根地址，无 trailing slash
 }
 ```
@@ -31,7 +31,7 @@ module.exports = {
 2. 若用 HTTP：填写 `httpBaseUrl`（需在小程序后台配置合法 request / uploadFile 域名），并确保自建服务实现与 adapter 相同的接口形状（见 `adapters/http/*.js`）。
 3. 重新编译。页面仍只 `require('../../services/...')`，无需改业务页。
 
-当前云环境 ID：`test1-d3gl4me5obe3f13ce`（已写入 `config/index.js` 与 `app.js`）。
+当前云环境 ID：`cloud1-d1gbvd1vw92534fc6`（已写入 `config/index.js` 与 `app.js`）。
 
 ---
 

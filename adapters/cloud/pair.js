@@ -3,6 +3,7 @@
  */
 
 const { PRESET_IDS } = require('../../utils/background')
+const { generateInviteCode } = require('../../utils/invite')
 
 /**
  * 查询当前用户所在的 pair（云数据库 pairs，memberOpenids 含 openid）
@@ -30,35 +31,79 @@ function getMyPair() {
           pair = twoPerson || res.data[0]
         }
       }
-      if (app && app.globalData) {
-        if (pair) {
-          app.globalData.pairId = pair._id
-          app.globalData.pair = pair
-        } else {
+      
+      if (!pair) {
+        if (app && app.globalData) {
           app.globalData.pairId = ''
           app.globalData.pair = null
         }
+        return null
       }
-      return pair
+      
+      return scrubExpiredInvite(pair).then((cleaned) => {
+        if (app && app.globalData) {
+          app.globalData.pairId = cleaned._id
+          app.globalData.pair = cleaned
+        }
+        return cleaned
+      })
     })
 }
 
-const INVITE_TTL_MS = 48 * 60 * 60 * 1000
-const CHARSET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
+const INVITE_TTL_MS = 10 * 60 * 1000 // 10 minutes
 
-function generateInviteCode() {
-  let code = ''
-  for (let i = 0; i < 6; i++) {
-    code += CHARSET[Math.floor(Math.random() * CHARSET.length)]
+/**
+ * 过期邀请码：清空码并关闭 inviteActive（相当于失效删除）
+ * @param {object} pair
+ * @returns {Promise<object>}
+ */
+function scrubExpiredInvite(pair) {
+  if (!pair || !pair._id) return Promise.resolve(pair)
+  const exp = pair.inviteExpireAt || 0
+  if (!pair.inviteActive || !pair.inviteCode || !exp || exp >= Date.now()) {
+    return Promise.resolve(pair)
   }
-  return code
+  const db = wx.cloud.database()
+  return db
+    .collection('pairs')
+    .doc(pair._id)
+    .update({
+      data: {
+        inviteCode: '',
+        inviteExpireAt: 0,
+        inviteActive: false,
+        updatedAt: Date.now(),
+      },
+    })
+    .then(() => {
+      const cleaned = Object.assign({}, pair, {
+        inviteCode: '',
+        inviteExpireAt: 0,
+        inviteActive: false,
+      })
+      const app = getApp()
+      if (app && app.globalData && app.globalData.pairId === pair._id) {
+        app.globalData.pair = cleaned
+      }
+      return cleaned
+    })
+    .catch(() =>
+      Object.assign({}, pair, {
+        inviteCode: '',
+        inviteExpireAt: 0,
+        inviteActive: false,
+      })
+    )
 }
 
 function cloudCallError(err, fallback) {
   const code = err && (err.errCode || err.code)
   const msg = (err && (err.message || err.errMsg)) || ''
   if (code === -601034) {
-    return new Error('未开通云服务：请在开发者工具打开「云开发」并绑定环境 test1')
+    return new Error('未开通云服务：请在开发者工具打开「云开发」并绑定环境')
+  }
+  if (code === -501000 || /Environment not found|INVALID_ENV/i.test(msg)) {
+    return new Error('云环境不存在(INVALID_ENV)：请核对 config 里 cloudEnvId 是否与云开发控制台一致')
   }
   return new Error(msg || fallback || '云调用失败')
 }
@@ -68,7 +113,9 @@ function cloudCallError(err, fallback) {
  * @returns {Promise<{ pairId, inviteCode, inviteExpireAt }>}
  */
 function createInviteLocal() {
-  return ensureSolo().then((pair) => {
+  return ensureSolo()
+    .then((pair) => scrubExpiredInvite(pair))
+    .then((pair) => {
     if (!pair || !pair._id) {
       return Promise.reject(new Error('无法创建个人空间，请确认已开通云开发'))
     }
@@ -90,22 +137,35 @@ function createInviteLocal() {
           updatedAt: Date.now(),
         },
       })
-      .then(() => {
-        const app = getApp()
-        if (app && app.globalData) {
-          app.globalData.pairId = pair._id
-          app.globalData.pair = Object.assign({}, pair, {
-            inviteCode: inviteCode,
-            inviteExpireAt: inviteExpireAt,
-            inviteActive: true,
+      .then(() =>
+        db
+          .collection('pairs')
+          .doc(pair._id)
+          .get()
+          .then((got) => {
+            const doc = (got && got.data) || {}
+            const saved = String(doc.inviteCode || '').toUpperCase()
+            if (saved !== inviteCode) {
+              return Promise.reject(
+                new Error('邀请码未写入云库，请检查数据库权限后重试')
+              )
+            }
+            const app = getApp()
+            if (app && app.globalData) {
+              app.globalData.pairId = pair._id
+              app.globalData.pair = Object.assign({}, pair, {
+                inviteCode: inviteCode,
+                inviteExpireAt: inviteExpireAt,
+                inviteActive: true,
+              })
+            }
+            return {
+              pairId: pair._id,
+              inviteCode: inviteCode,
+              inviteExpireAt: inviteExpireAt,
+            }
           })
-        }
-        return {
-          pairId: pair._id,
-          inviteCode: inviteCode,
-          inviteExpireAt: inviteExpireAt,
-        }
-      })
+      )
   })
 }
 
@@ -427,10 +487,50 @@ function ensureSolo() {
   })
 }
 
+
+/**
+ * 开发版专用：写入一个假的第二成员 openid，便于单人测「已配对」状态
+ * @returns {Promise<object>}
+ */
+function simulateDevPartner() {
+  const app = getApp()
+  const isDev = !!(app && app.globalData && app.globalData.isDevBuild)
+  if (!isDev) {
+    return Promise.reject(new Error('仅开发版可用'))
+  }
+  return ensureSolo().then((pair) => {
+    if (!pair || !pair._id) {
+      return Promise.reject(new Error('请先登录并创建个人空间'))
+    }
+    const members = (pair.memberOpenids || []).slice()
+    if (members.length >= 2) {
+      return pair
+    }
+    const fake = 'dev_partner_' + String(Date.now()).slice(-8)
+    members.push(fake)
+    const db = wx.cloud.database()
+    const now = Date.now()
+    return db
+      .collection('pairs')
+      .doc(pair._id)
+      .update({
+        data: {
+          memberOpenids: members,
+          inviteActive: false,
+          inviteCode: '',
+          inviteExpireAt: 0,
+          updatedAt: now,
+        },
+      })
+      .then(() => getMyPair())
+  })
+}
+
 module.exports = {
   getMyPair,
   createInvite,
   acceptInvite,
   ensureSolo,
+  simulateDevPartner,
   updateBackground,
 }
