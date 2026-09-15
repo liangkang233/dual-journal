@@ -31,27 +31,25 @@ exports.main = async (event) => {
   const now = Date.now()
 
   try {
+    // 查询用户已加入的所有 pair
     const mine = await db
       .collection('pairs')
       .where({ memberOpenids: OPENID })
       .get()
 
-    let myPair = null
     if (mine.data && mine.data.length > 0) {
-      if (mine.data.length === 1) {
-        myPair = mine.data[0]
-      } else {
-        const twoPerson = mine.data.find(p => (p.memberOpenids || []).length >= 2)
-        myPair = twoPerson || mine.data[0]
-      }
-      if (myPair.inviteCode === inviteCode) {
-        return { ok: true, pairId: myPair._id }
-      }
-      const myMembers = myPair.memberOpenids || []
-      if (myMembers.length >= 2) {
+      // 检查是否已在双人配对中
+      const myDualPair = mine.data.find((p) => (p.memberOpenids || []).length >= 2)
+      
+      if (myDualPair) {
+        if (myDualPair.inviteCode === inviteCode) {
+          return { ok: true, pairId: myDualPair._id }
+        }
         return { ok: false, error: '你已在其他配对中，无法再加入' }
       }
     }
+    
+    const existingSoloPairs = (mine.data || []).filter((p) => (p.memberOpenids || []).length === 1)
 
     const found = await db
       .collection('pairs')
@@ -112,25 +110,24 @@ exports.main = async (event) => {
         data: updateData,
       })
 
-    if (myPair && myPair.memberOpenids && myPair.memberOpenids.length === 1) {
-      const [entriesRes, todosRes, anniRes] = await Promise.all([
-        db.collection('entries').where({ pairId: myPair._id }).count(),
-        db.collection('todos').where({ pairId: myPair._id }).count(),
-        db.collection('anniversaries').where({ pairId: myPair._id }).count(),
-      ])
-      
-      const hasData = entriesRes.total > 0 || todosRes.total > 0 || anniRes.total > 0
-      
-      if (hasData) {
-        const _ = db.command
-        await Promise.all([
-          db.collection('entries').where({ pairId: myPair._id }).update({ data: { pairId: pair._id } }),
-          db.collection('todos').where({ pairId: myPair._id }).update({ data: { pairId: pair._id } }),
-          db.collection('anniversaries').where({ pairId: myPair._id }).update({ data: { pairId: pair._id } }),
-        ])
+    // 标记旧的solo pair为inactive（软删除）
+    if (existingSoloPairs && existingSoloPairs.length > 0) {
+      for (const soloPair of existingSoloPairs) {
+        try {
+          await db
+            .collection('pairs')
+            .doc(soloPair._id)
+            .update({
+              data: {
+                inviteActive: false,
+                inactivatedAt: now,
+                updatedAt: now,
+              },
+            })
+        } catch (cleanupErr) {
+          console.warn('cleanup solo pair failed', soloPair._id, cleanupErr)
+        }
       }
-      
-      await db.collection('pairs').doc(myPair._id).remove()
     }
 
     return { ok: true, pairId: pair._id }

@@ -7,6 +7,8 @@ const { generateInviteCode } = require('../../utils/invite')
 
 /**
  * 查询当前用户所在的 pair（云数据库 pairs，memberOpenids 含 openid）
+ * 优先返回双人配对（真实配对），而非单人solo配对
+ * 过滤掉已失效的pair（有inactivatedAt且单人）
  * @returns {Promise<object|null>}
  */
 function getMyPair() {
@@ -22,23 +24,29 @@ function getMyPair() {
     .where({ memberOpenids: openid })
     .get()
     .then((res) => {
-      let pair = null
-      if (res.data && res.data.length > 0) {
-        if (res.data.length === 1) {
-          pair = res.data[0]
-        } else {
-          const twoPerson = res.data.find(p => (p.memberOpenids || []).length >= 2)
-          pair = twoPerson || res.data[0]
-        }
-      }
+      let pairs = res.data || []
       
-      if (!pair) {
+      // 过滤掉已失效的solo pair（单人且有inactivatedAt），这些是加入dual pair后留下的
+      // 但保留双人配对，即使有inactivatedAt（满员后邀请会失效，但配对仍有效）
+      pairs = pairs.filter((p) => {
+        const memberCount = (p.memberOpenids || []).length
+        if (memberCount >= 2) return true
+        // 单人solo: 如果有inactivatedAt就过滤掉
+        return !p.inactivatedAt
+      })
+      
+      if (pairs.length === 0) {
         if (app && app.globalData) {
           app.globalData.pairId = ''
           app.globalData.pair = null
         }
         return null
       }
+      
+      // 优先选择双人配对（memberOpenids.length >= 2），这是真实的配对
+      // 单人solo配对仅作为临时状态，不应覆盖真实配对
+      const dualPair = pairs.find((p) => (p.memberOpenids || []).length >= 2)
+      const pair = dualPair || pairs[0]
       
       return scrubExpiredInvite(pair).then((cleaned) => {
         if (app && app.globalData) {
@@ -200,6 +208,8 @@ function createInvite() {
 
 /**
  * 客户端接受邀请（查询 pairs 后更新成员）
+ * TC-P0-1: 仅双人配对阻止加入,solo不阻止
+ * TC-P0-2: 使用inactivatedAt软删除旧solo,防止getMyPair再次返回
  * @param {string} inviteCode
  * @returns {Promise<{ pairId: string }>}
  */
@@ -212,14 +222,28 @@ function acceptInviteLocal(inviteCode) {
   const db = wx.cloud.database()
   const now = Date.now()
   
+  // 先查询用户是否已在其他dual pair中
   return db
     .collection('pairs')
     .where({ memberOpenids: openid })
-    .limit(1)
     .get()
-    .then((myRes) => {
-      const myPair = (myRes.data && myRes.data[0]) || null
+    .then((existingRes) => {
+      const existingPairs = existingRes.data || []
+      const existingDualPair = existingPairs.find((p) => (p.memberOpenids || []).length >= 2)
       
+      if (existingDualPair) {
+        // 如果已在双人配对中，检查是否是同一个邀请码
+        if (existingDualPair.inviteCode === inviteCode) {
+          if (app.globalData) {
+            app.globalData.pairId = existingDualPair._id
+            app.globalData.pair = existingDualPair
+          }
+          return { pairId: existingDualPair._id }
+        }
+        return Promise.reject(new Error('你已在其他配对中，无法再加入'))
+      }
+      
+      // 查询目标邀请码
       return db
         .collection('pairs')
         .where({
@@ -233,22 +257,6 @@ function acceptInviteLocal(inviteCode) {
           if (!pair) {
             return Promise.reject(new Error('邀请码无效或已失效'))
           }
-          
-          if (myPair && myPair.inviteCode === inviteCode) {
-            if (app.globalData) {
-              app.globalData.pairId = myPair._id
-              app.globalData.pair = myPair
-            }
-            return { pairId: myPair._id }
-          }
-          
-          if (myPair) {
-            const myMembers = myPair.memberOpenids || []
-            if (myMembers.length >= 2) {
-              return Promise.reject(new Error('你已在其他配对中，无法再加入'))
-            }
-          }
-          
           if (pair.inviteExpireAt && pair.inviteExpireAt < now) {
             return Promise.reject(new Error('邀请码已过期'))
           }
@@ -263,61 +271,48 @@ function acceptInviteLocal(inviteCode) {
           if (members.length >= 2) {
             return Promise.reject(new Error('配对已满员'))
           }
+          
           const nextMembers = members.concat([openid])
-          const full = nextMembers.length >= 2
+          const soloPairs = existingPairs.filter((p) => (p.memberOpenids || []).length === 1)
           
-          const updateData = {
-            memberOpenids: nextMembers,
-            inviteActive: !full,
-            updatedAt: now,
-          }
-          if (full) {
-            updateData.inviteCode = ''
-          }
-          
+          // 加入双人配对并标记旧solo pair为inactive
           return db
             .collection('pairs')
             .doc(pair._id)
-            .update({ data: updateData })
+            .update({
+              data: {
+                memberOpenids: nextMembers,
+                inviteActive: nextMembers.length >= 2 ? false : true,
+                updatedAt: now,
+              },
+            })
             .then(() => {
-              if (!myPair || !myPair.memberOpenids || myPair.memberOpenids.length !== 1) {
+              // 标记旧solo pair为inactive（软删除）
+              const cleanupPromises = soloPairs.map((soloPair) =>
+                db
+                  .collection('pairs')
+                  .doc(soloPair._id)
+                  .update({
+                    data: {
+                      inviteActive: false,
+                      inactivatedAt: now,
+                      updatedAt: now,
+                    },
+                  })
+                  .catch((err) => {
+                    console.warn('cleanup solo pair failed', err)
+                  })
+              )
+              
+              return Promise.all(cleanupPromises).then(() => {
                 if (app.globalData) {
                   app.globalData.pairId = pair._id
                   app.globalData.pair = Object.assign({}, pair, {
                     memberOpenids: nextMembers,
-                    inviteActive: !full,
+                    inviteActive: nextMembers.length < 2,
                   })
                 }
                 return { pairId: pair._id }
-              }
-              
-              return Promise.all([
-                db.collection('entries').where({ pairId: myPair._id }).count(),
-                db.collection('todos').where({ pairId: myPair._id }).count(),
-                db.collection('anniversaries').where({ pairId: myPair._id }).count(),
-              ]).then(([entriesRes, todosRes, anniRes]) => {
-                const hasData = entriesRes.total > 0 || todosRes.total > 0 || anniRes.total > 0
-                
-                const promises = []
-                if (hasData) {
-                  promises.push(
-                    db.collection('entries').where({ pairId: myPair._id }).update({ data: { pairId: pair._id } }),
-                    db.collection('todos').where({ pairId: myPair._id }).update({ data: { pairId: pair._id } }),
-                    db.collection('anniversaries').where({ pairId: myPair._id }).update({ data: { pairId: pair._id } })
-                  )
-                }
-                promises.push(db.collection('pairs').doc(myPair._id).remove())
-                
-                return Promise.all(promises).then(() => {
-                  if (app.globalData) {
-                    app.globalData.pairId = pair._id
-                    app.globalData.pair = Object.assign({}, pair, {
-                      memberOpenids: nextMembers,
-                      inviteActive: !full,
-                    })
-                  }
-                  return { pairId: pair._id }
-                })
               })
             })
         })
@@ -458,11 +453,22 @@ function updateBackground(opts) {
 
 /**
  * 云端单人空间：无 pair 时自动建一条仅含自己的 pairs 记录，便于未配对即可读写
+ * TC-P0-1: 如果已在双人配对中，不应再创建新的solo pair
  * @returns {Promise<object|null>}
  */
 function ensureSolo() {
   return getMyPair().then((pair) => {
-    if (pair) return pair
+    if (pair) {
+      const memberCount = (pair.memberOpenids || []).length
+      // 如果已在双人配对中，直接返回，不创建新的solo
+      if (memberCount >= 2) {
+        return pair
+      }
+      // 如果是单人solo，也直接返回（可能是之前创建的）
+      return pair
+    }
+    
+    // 完全没有pair时，创建一个新的solo pair
     const app = getApp()
     const openid = app && app.globalData && app.globalData.openid
     if (!openid) {
