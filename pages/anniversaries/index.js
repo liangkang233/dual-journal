@@ -13,6 +13,8 @@ Page({
     emptyDesc: '登录后会自动创建个人空间；也可邀请对方一起记录',
     bgClass: 'page-bg page-bg-warm',
     bgStyle: '',
+    _lastPairId: '',
+    _lastLoadedAt: 0,
   },
 
   onShow() {
@@ -20,14 +22,34 @@ Page({
     const boot = app.ensureLogin ? app.ensureLogin() : Promise.resolve()
     boot.then(() => {
       const paired = !!(app.globalData && app.globalData.pairId)
+      const pairId = (app.globalData && app.globalData.pairId) || ''
       this.setData({ paired })
-      if (!paired) return
-      this.loadList()
+      if (!paired) {
+        this.setData({ _lastPairId: '', _lastLoadedAt: 0 })
+        return
+      }
+
+      const now = Date.now()
+      const lastPairId = this.data._lastPairId
+      const lastLoadedAt = this.data._lastLoadedAt
+      const hasData = this.data.list && this.data.list.length > 0
+      const TTL = 20 * 1000
+      const isFresh = pairId === lastPairId && (now - lastLoadedAt) < TTL
+      const pairChanged = pairId !== lastPairId
+
+      if (pairChanged) {
+        this.setData({ _lastPairId: pairId, _lastLoadedAt: 0 })
+        this.loadList(true)
+      } else if (!hasData || !isFresh) {
+        this.loadList(!hasData)
+      }
     })
   },
 
-  loadList() {
-    this.setData({ loading: true })
+  loadList(showLoading) {
+    if (showLoading) {
+      this.setData({ loading: true })
+    }
     annService
       .listAnniversaries()
       .then((raw) => {
@@ -40,7 +62,7 @@ Page({
           })
         )
         const todayList = list.filter((i) => i.isToday)
-        this.setData({ list, todayList, loading: false })
+        this.setData({ list, todayList, loading: false, _lastLoadedAt: Date.now() })
       })
       .catch((err) => {
         console.error(err)
@@ -84,7 +106,7 @@ Page({
           .removeAnniversary(id)
           .then(() => {
             wx.showToast({ title: '已删除', icon: 'success' })
-            this.loadList()
+            this.loadList(false)
           })
           .catch((err) => {
             wx.showToast({ title: err.message || '删除失败', icon: 'none' })
@@ -98,7 +120,9 @@ Page({
       wx.stopPullDownRefresh()
       return
     }
-    this.loadList()
+    const pairId = (app.globalData && app.globalData.pairId) || ''
+    this.setData({ _lastPairId: pairId, _lastLoadedAt: 0 })
+    this.loadList(false)
     setTimeout(() => wx.stopPullDownRefresh(), 400)
   },
 })
