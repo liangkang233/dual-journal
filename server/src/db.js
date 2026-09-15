@@ -101,6 +101,9 @@ function migrate(db) {
     );
   `)
 
+  // Pairs: soft-delete timestamp for inactivated solo pairs
+  addColumnIfMissing(db, 'pairs', 'inactivated_at', 'INTEGER')
+
   // Shared narrative fields: 时间/地点/人物/起因/经过/结果
   const narrativeCols = [
     ['time_at', "TEXT NOT NULL DEFAULT ''"],
@@ -142,6 +145,7 @@ function rowToPair(row) {
     inviteCode: row.invite_code || '',
     inviteExpireAt: row.invite_expire_at,
     inviteActive: !!row.invite_active,
+    inactivatedAt: row.inactivated_at || null,
     background: parseJson(row.background, { type: 'preset', presetId: 'blush' }),
     createdAt: row.created_at,
     updatedAt: row.updated_at,

@@ -86,14 +86,25 @@ function requireAuth(req, res, next) {
   next()
 }
 
+/**
+ * Find pair by member - aligns with cloud getMyPair logic:
+ * 1. Skip inactivated solo pairs (single-member with inactivated_at)
+ * 2. Prefer dual pairs (2+ members) over solo
+ * TC-P0-2 fix for HTTP backend
+ */
 function findPairByMember(openid) {
   const rows = db.prepare('SELECT * FROM pairs').all()
+<<<<<<< HEAD
   let foundSolo = null
   let foundPair = null
+=======
+  const userPairs = []
+>>>>>>> 5712085 (fix: HTTP backend alignment - schema and getMyPair logic)
   
   for (const row of rows) {
     const members = JSON.parse(row.member_openids || '[]')
     if (Array.isArray(members) && members.indexOf(openid) >= 0) {
+<<<<<<< HEAD
       if (members.length >= 2) {
         return row
       } else if (!foundSolo) {
@@ -103,6 +114,31 @@ function findPairByMember(openid) {
   }
   
   return foundSolo
+=======
+      userPairs.push(row)
+    }
+  }
+  
+  if (userPairs.length === 0) return null
+  
+  // Filter out inactivated solo pairs (single-member with inactivated_at)
+  const activePairs = userPairs.filter((row) => {
+    const members = JSON.parse(row.member_openids || '[]')
+    const memberCount = members.length
+    if (memberCount >= 2) return true  // Keep all dual pairs
+    return !row.inactivated_at  // For solo, only keep if not inactivated
+  })
+  
+  if (activePairs.length === 0) return null
+  
+  // Prefer dual pairs (2+ members)
+  const dualPair = activePairs.find((row) => {
+    const members = JSON.parse(row.member_openids || '[]')
+    return members.length >= 2
+  })
+  
+  return dualPair || activePairs[0]
+>>>>>>> 5712085 (fix: HTTP backend alignment - schema and getMyPair logic)
 }
 
 function getPairRow(id) {
