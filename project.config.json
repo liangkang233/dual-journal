@@ -1,5 +1,6 @@
 {
   "description": "最小可分享小程序",
+  "version": "0.2.0",
   "packOptions": {
     "ignore": [
       {
@@ -16,18 +17,6 @@
       },
       {
         "type": "folder",
-        "value": ".git"
-      },
-      {
-        "type": "suffix",
-        "value": ".md"
-      },
-      {
-        "type": "folder",
-        "value": "assets/generated"
-      },
-      {
-        "type": "folder",
         "value": "scripts"
       },
       {
@@ -39,12 +28,24 @@
         "value": "tmp-preview"
       },
       {
+        "type": "folder",
+        "value": ".git"
+      },
+      {
+        "type": "folder",
+        "value": "assets/generated"
+      },
+      {
         "type": "file",
         "value": "package.json"
       },
       {
         "type": "file",
         "value": "package-lock.json"
+      },
+      {
+        "type": "suffix",
+        "value": ".md"
       }
     ],
     "include": []
@@ -98,6 +99,5 @@
   "condition": {},
   "simulatorPluginLibVersion": {},
   "editorSetting": {},
-  "cloudfunctionRoot": "cloudfunctions/",
-  "version": "0.1.3"
+  "cloudfunctionRoot": "cloudfunctions/"
 }

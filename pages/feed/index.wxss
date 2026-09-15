@@ -42,53 +42,151 @@
   color: #d4880f;
 }
 
-.timeline {
+/* Moments 风格卡片 */
+.moments-feed {
   display: flex;
   flex-direction: column;
   gap: 24rpx;
 }
 
-.entry-card {
+.moment-card {
   background: #fff;
   border-radius: 24rpx;
   padding: 28rpx 32rpx;
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
 }
 
-.entry-title {
-  font-size: 34rpx;
+.moment-header {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  margin-bottom: 20rpx;
+}
+
+.author-avatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ffd4a8, #ffb3c1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.moment-header-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.author-name {
+  font-size: 30rpx;
   font-weight: 600;
   color: #222;
-  margin-bottom: 12rpx;
 }
 
-.entry-content {
-  font-size: 28rpx;
-  color: #555;
-  line-height: 1.6;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  overflow: hidden;
-}
-
-.entry-thumbs {
-  margin-top: 20rpx;
-  display: flex;
-  gap: 12rpx;
-}
-
-.thumb {
-  width: 160rpx;
-  height: 160rpx;
-  border-radius: 12rpx;
-  background: #eee;
-}
-
-.entry-meta {
-  margin-top: 16rpx;
+.moment-time {
   font-size: 24rpx;
   color: #999;
+}
+
+.moment-body {
+  font-size: 28rpx;
+  color: #333;
+  line-height: 1.6;
+  margin-bottom: 16rpx;
+  word-wrap: break-word;
+}
+
+/* 图片网格 1-9 张 */
+.moment-images {
+  margin-top: 16rpx;
+}
+
+.image-grid {
+  display: grid;
+  gap: 8rpx;
+}
+
+/* 单图 */
+.grid-1 {
+  grid-template-columns: 1fr;
+}
+
+.grid-1 .grid-image {
+  width: 100%;
+  height: 400rpx;
+  border-radius: 16rpx;
+}
+
+/* 2 图 */
+.grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.grid-2 .grid-image {
+  width: 100%;
+  height: 240rpx;
+  border-radius: 12rpx;
+}
+
+/* 3 图 */
+.grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.grid-3 .grid-image {
+  width: 100%;
+  height: 180rpx;
+  border-radius: 12rpx;
+}
+
+/* 4 图 */
+.grid-4 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.grid-4 .grid-image {
+  width: 100%;
+  height: 240rpx;
+  border-radius: 12rpx;
+}
+
+/* 5-6 图 */
+.grid-5,
+.grid-6 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.grid-5 .grid-image,
+.grid-6 .grid-image {
+  width: 100%;
+  height: 180rpx;
+  border-radius: 12rpx;
+}
+
+/* 7-9 图 */
+.grid-7,
+.grid-8,
+.grid-9 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.grid-7 .grid-image,
+.grid-8 .grid-image,
+.grid-9 .grid-image {
+  width: 100%;
+  height: 180rpx;
+  border-radius: 12rpx;
+}
+
+.grid-image {
+  background: #f0f0f0;
 }
 
 .fab {
@@ -107,20 +205,6 @@
   justify-content: center;
   box-shadow: 0 8rpx 24rpx rgba(7, 193, 96, 0.35);
   z-index: 10;
-}
-
-
-.entry-fields {
-  font-size: 24rpx;
-  color: #444;
-  margin-bottom: 10rpx;
-}
-
-.entry-result {
-  margin-top: 10rpx;
-  font-size: 26rpx;
-  color: #333;
-  font-weight: 500;
 }
 
 .empty-visible .empty-title {

@@ -2,6 +2,8 @@ const app = getApp()
 const annService = require('../../services/anniversaries')
 const { isAnniversaryToday } = require('../../utils/anniversary')
 const { applyPairBackground } = require('../../utils/background')
+const { generateCalendarMatrix, getPrevMonth, getNextMonth, formatMonthTitle } = require('../../utils/calendar')
+const { getUpcomingAnniversaries } = require('../../utils/upcomingAnniversaries')
 
 Page({
   data: {
@@ -13,12 +15,32 @@ Page({
     emptyDesc: '登录后会自动创建个人空间；也可邀请对方一起记录',
     bgClass: 'page-bg page-bg-warm',
     bgStyle: '',
+    
+    // TTL 缓存相关
     _lastPairId: '',
     _lastLoadedAt: 0,
+    
+    // 视图模式: 'calendar' 或 'list'
+    viewMode: 'calendar',
+    
+    // 日历数据
+    currentYear: new Date().getFullYear(),
+    currentMonth: new Date().getMonth() + 1,
+    monthTitle: '',
+    calendarMatrix: [],
+    anniversaryDates: {},
+    
+    // 列表数据
+    upcomingList: [],
   },
 
   onShow() {
     applyPairBackground(this)
+    
+    // 从缓存中恢复视图模式
+    const savedViewMode = wx.getStorageSync('anniversaries_view_mode') || 'calendar'
+    this.setData({ viewMode: savedViewMode })
+    
     const boot = app.ensureLogin ? app.ensureLogin() : Promise.resolve()
     boot.then(() => {
       const paired = !!(app.globalData && app.globalData.pairId)
@@ -62,7 +84,47 @@ Page({
           })
         )
         const todayList = list.filter((i) => i.isToday)
-        this.setData({ list, todayList, loading: false, _lastLoadedAt: Date.now() })
+        
+        // 计算即将到来的纪念日
+        const upcomingList = getUpcomingAnniversaries(list, now)
+        
+        // 构建日历视图的纪念日映射
+        const anniversaryDates = {}
+        list.forEach(ann => {
+          if (ann.date) {
+            // 提取月-日部分
+            const parts = ann.date.split('-')
+            let key
+            if (parts.length === 3) {
+              // YYYY-MM-DD 格式
+              if (ann.repeatYearly) {
+                key = `${parts[1]}-${parts[2]}` // 每年重复只记 MM-DD
+              } else {
+                key = ann.date // 一次性的记完整日期
+              }
+            } else if (parts.length === 2) {
+              key = ann.date // MM-DD 格式
+            }
+            
+            if (key) {
+              if (!anniversaryDates[key]) {
+                anniversaryDates[key] = []
+              }
+              anniversaryDates[key].push(ann)
+            }
+          }
+        })
+        
+        this.setData({ 
+          list, 
+          todayList, 
+          upcomingList,
+          anniversaryDates,
+          loading: false,
+          _lastLoadedAt: Date.now()
+        })
+        
+        this.updateCalendar()
       })
       .catch((err) => {
         console.error(err)
@@ -113,6 +175,71 @@ Page({
           })
       },
     })
+  },
+
+  updateCalendar() {
+    const { currentYear, currentMonth, anniversaryDates } = this.data
+    const matrix = generateCalendarMatrix(currentYear, currentMonth)
+    const monthTitle = formatMonthTitle(currentYear, currentMonth)
+    
+    // 为每个日期添加是否有纪念日的标记
+    matrix.forEach(week => {
+      week.forEach(day => {
+        if (day.date) {
+          const mmdd = day.date.substring(5) // 提取 MM-DD
+          const fullDate = day.date // YYYY-MM-DD
+          day.hasAnniversary = !!(anniversaryDates[mmdd] || anniversaryDates[fullDate])
+        }
+      })
+    })
+    
+    this.setData({ calendarMatrix: matrix, monthTitle })
+  },
+  
+  toggleViewMode() {
+    const newMode = this.data.viewMode === 'calendar' ? 'list' : 'calendar'
+    this.setData({ viewMode: newMode })
+    
+    // 保存到缓存
+    wx.setStorageSync('anniversaries_view_mode', newMode)
+  },
+  
+  prevMonth() {
+    const { currentYear, currentMonth } = this.data
+    const prev = getPrevMonth(currentYear, currentMonth)
+    this.setData({
+      currentYear: prev.year,
+      currentMonth: prev.month
+    })
+    this.updateCalendar()
+  },
+  
+  nextMonth() {
+    const { currentYear, currentMonth } = this.data
+    const next = getNextMonth(currentYear, currentMonth)
+    this.setData({
+      currentYear: next.year,
+      currentMonth: next.month
+    })
+    this.updateCalendar()
+  },
+  
+  onDayTap(e) {
+    const date = e.currentTarget.dataset.date
+    if (!date) return
+    
+    const mmdd = date.substring(5)
+    const { anniversaryDates } = this.data
+    const anns = anniversaryDates[mmdd] || anniversaryDates[date] || []
+    
+    if (anns.length > 0) {
+      const titles = anns.map(a => a.title).join('、')
+      wx.showModal({
+        title: date,
+        content: titles,
+        showCancel: false
+      })
+    }
   },
 
   onPullDownRefresh() {

@@ -13,17 +13,22 @@
 .todo-list {
   display: flex;
   flex-direction: column;
-  gap: 20rpx;
+  gap: 16rpx;
 }
 
 .todo-card {
   background: #fff;
-  border-radius: 24rpx;
+  border-radius: 20rpx;
   padding: 24rpx 28rpx;
   display: flex;
-  align-items: center;
-  gap: 16rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+  align-items: flex-start;
+  gap: 20rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+  transition: all 0.3s;
+}
+
+.todo-card.is-done {
+  opacity: 0.6;
 }
 
 .todo-card.is-done .todo-title {
@@ -31,22 +36,29 @@
   text-decoration: line-through;
 }
 
+.todo-card.is-done .todo-fields,
+.todo-card.is-done .todo-due {
+  color: #bbb;
+}
+
 .check {
   flex-shrink: 0;
-  padding: 8rpx;
+  padding: 4rpx;
+  margin-top: 2rpx;
 }
 
 .check-box {
-  width: 44rpx;
-  height: 44rpx;
-  border-radius: 12rpx;
-  border: 3rpx solid #ccc;
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 50%;
+  border: 3rpx solid #d0d0d0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 26rpx;
+  font-size: 28rpx;
   color: #fff;
   box-sizing: border-box;
+  transition: all 0.2s;
 }
 
 .check-box.checked {
@@ -63,25 +75,7 @@
   display: flex;
   align-items: center;
   gap: 12rpx;
-}
-
-.priority-dot {
-  width: 16rpx;
-  height: 16rpx;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.priority-high {
-  background: #e64340;
-}
-
-.priority-medium {
-  background: #ff9800;
-}
-
-.priority-low {
-  background: #07c160;
+  margin-bottom: 8rpx;
 }
 
 .todo-title {
@@ -89,32 +83,73 @@
   font-size: 30rpx;
   font-weight: 500;
   color: #222;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.4;
+  word-wrap: break-word;
 }
 
 .priority-tag {
-  font-size: 22rpx;
-  color: #888;
+  font-size: 20rpx;
   flex-shrink: 0;
   padding: 4rpx 12rpx;
-  background: #f5f5f5;
-  border-radius: 8rpx;
+  border-radius: 12rpx;
+  font-weight: 500;
+  color: #fff;
+}
+
+/* 优先级芯片颜色 */
+.todo-row:has(.priority-high) .priority-tag {
+  background: #e64340;
+}
+
+.todo-row:has(.priority-medium) .priority-tag {
+  background: #ff9800;
+}
+
+.todo-row:has(.priority-low) .priority-tag {
+  background: #07c160;
+}
+
+/* 后备方案(如果不支持 :has) */
+.priority-high + .todo-title + .priority-tag {
+  background: #e64340;
+}
+
+.priority-medium + .todo-title + .priority-tag {
+  background: #ff9800;
+}
+
+.priority-low + .todo-title + .priority-tag {
+  background: #07c160;
+}
+
+.priority-dot {
+  display: none;
+}
+
+.todo-fields {
+  font-size: 24rpx;
+  color: #666;
+  line-height: 1.5;
+  margin-bottom: 6rpx;
 }
 
 .todo-due {
-  margin-top: 8rpx;
-  margin-left: 28rpx;
   font-size: 24rpx;
   color: #999;
+  line-height: 1.5;
+}
+
+.countdown {
+  color: #ff9800;
+  font-weight: 600;
 }
 
 .todo-del {
   flex-shrink: 0;
-  font-size: 26rpx;
+  font-size: 24rpx;
   color: #e64340;
-  padding: 12rpx 8rpx;
+  padding: 8rpx 12rpx;
+  margin-top: 2rpx;
 }
 
 .fab {
@@ -135,19 +170,6 @@
   z-index: 10;
 }
 
-
-.todo-fields {
-  margin-top: 6rpx;
-  margin-left: 28rpx;
-  font-size: 24rpx;
-  color: #444;
-}
-
-.countdown {
-  color: #c47a0a;
-  font-weight: 600;
-}
-
 .empty-visible .empty-title {
   color: #111 !important;
 }
@@ -160,8 +182,4 @@
   background: #07c160 !important;
   color: #fff !important;
   border: 2rpx solid #05964a;
-}
-
-.hint-center {
-  color: #333;
 }

@@ -23,30 +23,98 @@
       <button class="empty-cta" bindtap="goEdit">新建纪念日</button>
     </view>
 
-    <view wx:else class="ann-list">
-      <view
-        class="ann-card {{item.isToday ? 'is-today' : ''}}"
-        wx:for="{{list}}"
-        wx:key="_id"
-      >
-        <view class="ann-main" data-id="{{item._id}}" bindtap="goEdit">
-          <view class="ann-row">
-            <view class="ann-title">{{item.title}}</view>
-            <view class="today-tag" wx:if="{{item.isToday}}">今天</view>
-          </view>
-          <view class="ann-meta">
-            <text>{{item.dateLabel}}</text>
-            <text class="dot">·</text>
-            <text>{{item.repeatLabel}}</text>
+    <block wx:else>
+      <!-- 视图切换按钮 -->
+      <view class="view-toggle">
+        <view 
+          class="toggle-btn {{viewMode === 'calendar' ? 'active' : ''}}"
+          bindtap="toggleViewMode"
+        >
+          <text class="toggle-icon">📅</text>
+          <text>日历</text>
+        </view>
+        <view 
+          class="toggle-btn {{viewMode === 'list' ? 'active' : ''}}"
+          bindtap="toggleViewMode"
+        >
+          <text class="toggle-icon">📋</text>
+          <text>列表</text>
+        </view>
+      </view>
+
+      <!-- 日历视图 -->
+      <view wx:if="{{viewMode === 'calendar'}}" class="calendar-view">
+        <view class="calendar-header">
+          <view class="month-nav" bindtap="prevMonth">‹</view>
+          <view class="month-title">{{monthTitle}}</view>
+          <view class="month-nav" bindtap="nextMonth">›</view>
+        </view>
+
+        <view class="calendar-weekdays">
+          <view class="weekday">日</view>
+          <view class="weekday">一</view>
+          <view class="weekday">二</view>
+          <view class="weekday">三</view>
+          <view class="weekday">四</view>
+          <view class="weekday">五</view>
+          <view class="weekday">六</view>
+        </view>
+
+        <view class="calendar-body">
+          <view 
+            class="calendar-week" 
+            wx:for="{{calendarMatrix}}" 
+            wx:key="index"
+          >
+            <view 
+              class="calendar-day {{day.day ? '' : 'empty'}} {{day.isToday ? 'today' : ''}} {{day.hasAnniversary ? 'has-ann' : ''}}"
+              wx:for="{{item}}"
+              wx:for-item="day"
+              wx:key="index"
+              data-date="{{day.date}}"
+              bindtap="onDayTap"
+            >
+              <text class="day-number">{{day.day || ''}}</text>
+              <view wx:if="{{day.hasAnniversary}}" class="ann-dot"></view>
+            </view>
           </view>
         </view>
-        <view
-          class="ann-del"
-          data-id="{{item._id}}"
-          catchtap="onDelete"
-        >删除</view>
       </view>
-    </view>
+
+      <!-- 列表视图(即将到来) -->
+      <view wx:if="{{viewMode === 'list'}}" class="upcoming-list">
+        <view class="list-header">即将到来</view>
+        
+        <view wx:if="{{!upcomingList.length}}" class="no-upcoming">
+          <text>没有即将到来的纪念日</text>
+        </view>
+        
+        <block wx:else>
+          <view 
+            class="upcoming-card {{item.daysUntil === 0 ? 'is-today' : ''}}"
+            wx:for="{{upcomingList}}"
+            wx:key="_id"
+          >
+            <view class="upcoming-main" data-id="{{item._id}}" bindtap="goEdit">
+              <view class="upcoming-row">
+                <view class="upcoming-title">{{item.title}}</view>
+                <view class="upcoming-label {{item.daysUntil === 0 ? 'today-label' : ''}}">{{item.label}}</view>
+              </view>
+              <view class="upcoming-meta">
+                <text>{{item.dateLabel}}</text>
+                <text class="dot">·</text>
+                <text>{{item.repeatLabel}}</text>
+              </view>
+            </view>
+            <view
+              class="upcoming-del"
+              data-id="{{item._id}}"
+              catchtap="onDelete"
+            >删除</view>
+          </view>
+        </block>
+      </view>
+    </block>
 
     <view class="fab" bindtap="goEdit">+</view>
   </block>
