@@ -17,6 +17,7 @@ Page({
     bgStyle: '',
     _lastPairId: '',
     _lastLoadedAt: 0,
+    _lastPairEpoch: 0,
   },
 
   onShow() {
@@ -25,22 +26,25 @@ Page({
     boot.then(() => {
       const paired = !!(app.globalData && app.globalData.pairId)
       const pairId = (app.globalData && app.globalData.pairId) || ''
+      const pairEpoch = (app.globalData && app.globalData.pairEpoch) || 0
       this.setData({ paired })
       if (!paired) {
-        this.setData({ todayAnns: [], todayBannerText: '', entries: [], _lastPairId: '', _lastLoadedAt: 0 })
+        this.setData({ todayAnns: [], todayBannerText: '', entries: [], _lastPairId: '', _lastLoadedAt: 0, _lastPairEpoch: 0 })
         return
       }
 
       const now = Date.now()
       const lastPairId = this.data._lastPairId
       const lastLoadedAt = this.data._lastLoadedAt
+      const lastPairEpoch = this.data._lastPairEpoch
       const hasData = this.data.entries && this.data.entries.length > 0
       const TTL = 20 * 1000
       const isFresh = pairId === lastPairId && (now - lastLoadedAt) < TTL
       const pairChanged = pairId !== lastPairId
+      const epochChanged = pairEpoch !== lastPairEpoch
 
-      if (pairChanged) {
-        this.setData({ _lastPairId: pairId, _lastLoadedAt: 0 })
+      if (pairChanged || epochChanged) {
+        this.setData({ _lastPairId: pairId, _lastLoadedAt: 0, _lastPairEpoch: pairEpoch })
         this.loadEntries(true)
         this.loadTodayAnns()
       } else if (!hasData || !isFresh) {
@@ -136,7 +140,8 @@ Page({
     boot.then(() => {
       const paired = !!(app.globalData && app.globalData.pairId)
       const pairId = (app.globalData && app.globalData.pairId) || ''
-      this.setData({ paired, _lastPairId: pairId, _lastLoadedAt: 0 })
+      const pairEpoch = (app.globalData && app.globalData.pairEpoch) || 0
+      this.setData({ paired, _lastPairId: pairId, _lastLoadedAt: 0, _lastPairEpoch: pairEpoch })
       if (!paired) {
         wx.stopPullDownRefresh()
         return

@@ -19,6 +19,7 @@ Page({
     // TTL 缓存相关
     _lastPairId: '',
     _lastLoadedAt: 0,
+    _lastPairEpoch: 0,
     
     // 视图模式: 'calendar' 或 'list'
     viewMode: 'calendar',
@@ -46,22 +47,25 @@ Page({
     boot.then(() => {
       const paired = !!(app.globalData && app.globalData.pairId)
       const pairId = (app.globalData && app.globalData.pairId) || ''
+      const pairEpoch = (app.globalData && app.globalData.pairEpoch) || 0
       this.setData({ paired })
       if (!paired) {
-        this.setData({ _lastPairId: '', _lastLoadedAt: 0 })
+        this.setData({ _lastPairId: '', _lastLoadedAt: 0, _lastPairEpoch: 0 })
         return
       }
 
       const now = Date.now()
       const lastPairId = this.data._lastPairId
       const lastLoadedAt = this.data._lastLoadedAt
+      const lastPairEpoch = this.data._lastPairEpoch
       const hasData = this.data.list && this.data.list.length > 0
       const TTL = 20 * 1000
       const isFresh = pairId === lastPairId && (now - lastLoadedAt) < TTL
       const pairChanged = pairId !== lastPairId
+      const epochChanged = pairEpoch !== lastPairEpoch
 
-      if (pairChanged) {
-        this.setData({ _lastPairId: pairId, _lastLoadedAt: 0 })
+      if (pairChanged || epochChanged) {
+        this.setData({ _lastPairId: pairId, _lastLoadedAt: 0, _lastPairEpoch: pairEpoch })
         this.loadList(true)
       } else if (!hasData || !isFresh) {
         this.loadList(!hasData)
@@ -253,7 +257,8 @@ Page({
       return
     }
     const pairId = (app.globalData && app.globalData.pairId) || ''
-    this.setData({ _lastPairId: pairId, _lastLoadedAt: 0 })
+    const pairEpoch = (app.globalData && app.globalData.pairEpoch) || 0
+    this.setData({ _lastPairId: pairId, _lastLoadedAt: 0, _lastPairEpoch: pairEpoch })
     this.loadList(false)
     setTimeout(() => wx.stopPullDownRefresh(), 400)
   },

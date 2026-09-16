@@ -9,6 +9,7 @@ App({
     openid: '',
     pairId: '',
     pair: null,
+    pairEpoch: 0,
     dataBackend: config.dataBackend,
     envVersion: '',
     isDevBuild: false,
