@@ -325,7 +325,7 @@ function acceptInviteLocal(inviteCode) {
 }
 
 /**
- * 接受邀请码加入配对：优先云库直写；失败再试云函数
+ * 接受邀请码加入配对：优先云函数；失败再试云库直写
  * @param {string} code
  * @returns {Promise<{ pairId: string }>}
  */
@@ -333,27 +333,27 @@ function acceptInvite(code) {
   const inviteCode = String(code || '')
     .trim()
     .toUpperCase()
-  return acceptInviteLocal(inviteCode).catch((localErr) => {
-    return wx.cloud
-      .callFunction({
-        name: 'acceptInvite',
-        data: { inviteCode },
-      })
-      .then((res) => {
-        const result = res.result || {}
-        if (!result.ok) {
-          return Promise.reject(new Error(result.error || '加入配对失败'))
-        }
-        const app = getApp()
-        if (app && app.globalData) {
-          app.globalData.pairId = result.pairId
-        }
-        return { pairId: result.pairId }
-      })
-      .catch((fnErr) => {
+  return wx.cloud
+    .callFunction({
+      name: 'acceptInvite',
+      data: { inviteCode },
+    })
+    .then((res) => {
+      const result = res.result || {}
+      if (!result.ok) {
+        return Promise.reject(new Error(result.error || '加入配对失败'))
+      }
+      const app = getApp()
+      if (app && app.globalData) {
+        app.globalData.pairId = result.pairId
+      }
+      return getMyPair().then(() => ({ pairId: result.pairId }))
+    })
+    .catch((fnErr) => {
+      return acceptInviteLocal(inviteCode).catch((localErr) => {
         throw cloudCallError(fnErr, localErr.message || '加入配对失败')
       })
-  })
+    })
 }
 
 /**

@@ -34,12 +34,16 @@ exports.main = async (event) => {
     const mine = await db
       .collection('pairs')
       .where({ memberOpenids: OPENID })
-      .limit(1)
       .get()
 
     let myPair = null
     if (mine.data && mine.data.length > 0) {
-      myPair = mine.data[0]
+      if (mine.data.length === 1) {
+        myPair = mine.data[0]
+      } else {
+        const twoPerson = mine.data.find(p => (p.memberOpenids || []).length >= 2)
+        myPair = twoPerson || mine.data[0]
+      }
       if (myPair.inviteCode === inviteCode) {
         return { ok: true, pairId: myPair._id }
       }

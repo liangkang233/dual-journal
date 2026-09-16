@@ -47,6 +47,7 @@ Page({
     simulating: false,
     inviteCooldownSec: 0,
     accepting: false,
+    inviteActive: false,
     statusText: '加载中…',
     subscribeAuthorized: false,
     subscribeHint:
@@ -65,6 +66,7 @@ Page({
     cloudEnvId: '',
     dataBackend: '',
     _lastLoadedAt: 0,
+    _pollTimer: null,
   },
 
   onLoad(options) {
@@ -87,6 +89,14 @@ Page({
       pushDebug(this, 'onShow backend=' + (cfg.dataBackend || '') + ' env=' + (cfg.cloudEnvId || '') + ' envVersion=develop')
     }
     this.refresh()
+  },
+
+  onHide() {
+    this.stopPollForJoin()
+  },
+
+  onUnload() {
+    this.stopPollForJoin()
   },
 
   onToggleDebug() {
@@ -187,6 +197,7 @@ Page({
               inviteCode: '',
               inviteExpireAt: 0,
               expireText: '',
+              inviteActive: false,
               loading: false,
               statusText: '尚未配对，可生成邀请码或输入对方的码加入',
               subscribeAuthorized: false,
@@ -197,6 +208,7 @@ Page({
               bgStyle: '',
               _lastLoadedAt: Date.now(),
             })
+            this.stopPollForJoin()
             return
           }
           const members = pair.memberOpenids || []
@@ -204,19 +216,26 @@ Page({
           const expireText = pair.inviteExpireAt
             ? this.formatExpire(pair.inviteExpireAt)
             : ''
+          const inviteActive = !!pair.inviteActive
           this.setData({
             paired: paired,
             hasPair: true,
             memberCount: members.length,
-            inviteCode: pair.inviteActive ? pair.inviteCode || '' : '',
+            inviteCode: inviteActive ? pair.inviteCode || '' : '',
             inviteExpireAt: pair.inviteExpireAt || 0,
             expireText: expireText,
+            inviteActive: inviteActive,
             loading: false,
             statusText: paired
               ? '已配对，两人共享同一份见闻本'
               : '已有个人空间（可用见闻/待办），等待对方加入（最多 2 人）',
             _lastLoadedAt: Date.now(),
           })
+          if (inviteActive && members.length < 2) {
+            this.startPollForJoin()
+          } else {
+            this.stopPollForJoin()
+          }
           return this.applyBgFromPair(pair).then(() => this.checkSubscription())
         })
         .catch((err) => {
@@ -225,6 +244,7 @@ Page({
             loading: false,
             statusText: err.message || '加载失败',
           })
+          this.stopPollForJoin()
         })
 
     if (app.ensureLogin) {
@@ -235,6 +255,57 @@ Page({
       })
     }
     return run()
+  },
+
+  startPollForJoin() {
+    if (this.data._pollTimer) return
+    const timer = setInterval(() => {
+      const prevMemberCount = this.data.memberCount
+      pairService
+        .getMyPair()
+        .then((pair) => {
+          if (!pair) {
+            this.stopPollForJoin()
+            return
+          }
+          const members = pair.memberOpenids || []
+          const memberCount = members.length
+          const paired = memberCount >= 2
+          const inviteActive = !!pair.inviteActive
+          this.setData({
+            paired: paired,
+            memberCount: memberCount,
+            inviteActive: inviteActive,
+            inviteCode: inviteActive ? pair.inviteCode || '' : '',
+            statusText: paired
+              ? '已配对，两人共享同一份见闻本'
+              : '已有个人空间（可用见闻/待办），等待对方加入（最多 2 人）',
+          })
+          if (prevMemberCount < 2 && memberCount >= 2) {
+            if (app.globalData) {
+              app.globalData.pairEpoch = (app.globalData.pairEpoch || 0) + 1
+            }
+            wx.showToast({ title: '对方已加入', icon: 'success' })
+            this.stopPollForJoin()
+            this.setData({ _lastLoadedAt: 0 })
+            this.refresh()
+          } else if (!inviteActive || memberCount >= 2) {
+            this.stopPollForJoin()
+          }
+        })
+        .catch((err) => {
+          console.warn('poll getMyPair soft-fail', err)
+        })
+    }, 3000)
+    this.setData({ _pollTimer: timer })
+  },
+
+  stopPollForJoin() {
+    const timer = this.data._pollTimer
+    if (timer) {
+      clearInterval(timer)
+      this.setData({ _pollTimer: null })
+    }
   },
 
   checkSubscription() {
