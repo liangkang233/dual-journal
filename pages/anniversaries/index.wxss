@@ -1,6 +1,7 @@
 .ann-page {
-  padding-bottom: 160rpx;
+  padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
   position: relative;
+  min-height: 100vh;
 }
 
 .hint-center {
@@ -79,6 +80,7 @@
   border-radius: 24rpx;
   padding: 32rpx 24rpx;
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+  margin-bottom: 40rpx;
 }
 
 .calendar-header {
@@ -129,7 +131,8 @@
 .calendar-day {
   box-sizing: border-box;
   width: 100%;
-  height: 72rpx;
+  min-height: 72rpx;
+  aspect-ratio: 1 / 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -182,6 +185,7 @@
   display: flex;
   flex-direction: column;
   gap: 16rpx;
+  padding-bottom: 40rpx;
 }
 
 .list-header {
@@ -273,7 +277,7 @@
 .fab {
   position: fixed;
   right: 40rpx;
-  bottom: calc(40rpx + env(safe-area-inset-bottom));
+  bottom: calc(140rpx + env(safe-area-inset-bottom));
   width: 104rpx;
   height: 104rpx;
   border-radius: 52rpx;

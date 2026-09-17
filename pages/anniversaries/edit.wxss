@@ -1,5 +1,7 @@
 .edit-page {
-  padding-bottom: 80rpx;
+  padding-bottom: calc(80rpx + env(safe-area-inset-bottom));
+  min-height: 100vh;
+  box-sizing: border-box;
 }
 
 .card {
@@ -59,6 +61,7 @@
 
 .submit {
   margin-top: 16rpx;
+  margin-bottom: 32rpx;
 }
 
 .label-row {
