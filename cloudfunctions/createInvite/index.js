@@ -30,16 +30,28 @@ exports.main = async () => {
   const inviteExpireAt = now + INVITE_TTL_MS
 
   try {
+    // 对齐 getMyPair 逻辑：查询所有用户的 pair，优先选择双人配对
     const found = await db
       .collection('pairs')
       .where({
         memberOpenids: OPENID,
       })
-      .limit(1)
       .get()
 
-    if (found.data && found.data.length > 0) {
-      const pair = found.data[0]
+    let pairs = found.data || []
+    
+    // 过滤：保留所有 dual pair；对 solo 仅保留未软删除的（无 inactivatedAt）
+    pairs = pairs.filter((p) => {
+      const memberCount = (p.memberOpenids || []).length
+      if (memberCount >= 2) return true  // 保留所有 dual pair
+      return !p.inactivatedAt  // solo: 仅保留未软删除的
+    })
+
+    if (pairs.length > 0) {
+      // 优先选择双人配对，这是真实的配对
+      const dualPair = pairs.find((p) => (p.memberOpenids || []).length >= 2)
+      const pair = dualPair || pairs[0]
+      
       const members = pair.memberOpenids || []
 
       // TC-SYNC-3: 过滤假伙伴，只计算真实成员数
