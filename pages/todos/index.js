@@ -43,11 +43,14 @@ Page({
       const pairChanged = pairId !== lastPairId
       const epochChanged = pairEpoch !== lastPairEpoch
 
-      if (pairChanged || epochChanged) {
-        this.setData({ _lastPairId: pairId, _lastLoadedAt: 0, _lastPairEpoch: pairEpoch })
+      if (pairChanged) {
+        this.setData({ todos: [], _lastPairId: pairId, _lastLoadedAt: 0, _lastPairEpoch: pairEpoch })
         this.loadTodos(true)
-      } else if (!hasData || !isFresh) {
-        this.loadTodos(!hasData)
+      } else if (epochChanged) {
+        this.setData({ _lastPairId: pairId, _lastLoadedAt: 0, _lastPairEpoch: pairEpoch })
+        this.loadTodos(false)
+      } else if (!isFresh) {
+        this.loadTodos(false)
       }
     })
   },
