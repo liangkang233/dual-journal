@@ -81,7 +81,12 @@ exports.main = async (event) => {
       return { ok: false, error: '邀请码已过期，请让对方重新生成' }
     }
 
-    if (members.length >= MAX_MEMBERS) {
+    // TC-P0-5: 检查是否有模拟伙伴，如果有则清理以便真实用户加入
+    const hasDevPartner = members.some(id => 
+      typeof id === 'string' && id.startsWith('dev_partner_')
+    )
+    
+    if (members.length >= MAX_MEMBERS && !hasDevPartner) {
       await db
         .collection('pairs')
         .doc(pair._id)
@@ -91,7 +96,11 @@ exports.main = async (event) => {
       return { ok: false, error: '该配对已满员（最多 2 人）' }
     }
 
-    const newMembers = members.concat([OPENID])
+    // 移除模拟伙伴，为真实用户腾出位置
+    const realMembers = members.filter(id => 
+      !(typeof id === 'string' && id.startsWith('dev_partner_'))
+    )
+    const newMembers = realMembers.concat([OPENID])
     const full = newMembers.length >= MAX_MEMBERS
 
     const updateData = {

@@ -272,11 +272,21 @@ function acceptInviteLocal(inviteCode) {
             }
             return { pairId: pair._id }
           }
-          if (members.length >= 2) {
+          
+          // TC-P0-5: 检查是否有模拟伙伴，如果有则清理以便真实用户加入
+          const hasDevPartner = members.some(id => 
+            typeof id === 'string' && id.startsWith('dev_partner_')
+          )
+          
+          if (members.length >= 2 && !hasDevPartner) {
             return Promise.reject(new Error('配对已满员'))
           }
           
-          const nextMembers = members.concat([openid])
+          // 移除模拟伙伴，为真实用户腾出位置
+          const realMembers = members.filter(id => 
+            !(typeof id === 'string' && id.startsWith('dev_partner_'))
+          )
+          const nextMembers = realMembers.concat([openid])
           const soloPairs = existingPairs.filter((p) => (p.memberOpenids || []).length === 1)
           
           // 加入双人配对并标记旧solo pair为inactive

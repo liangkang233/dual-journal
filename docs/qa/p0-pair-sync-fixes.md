@@ -88,40 +88,35 @@
 
 **对应缺陷**: `simulateDevPartner` 占满 2 人并清邀请码；HTTP 不支持模拟。
 
-**当前状态**: 
-经过代码审查,本PR**未删除或修改**任何simulate相关代码。在`adapters/cloud/pair.js`和`pages/pair/index.js`中均未找到`simulateDevPartner`函数或相关导出。
+**当前状态**: ✅ **已实现**
 
-**如果此功能存在于其他分支或计划实现**:
+`simulateDevPartner` 功能已在 `adapters/cloud/pair.js` 中实现，用于开发版调试：
+- 点击「模拟第二人加入」后，memberCount 变 2，但第二人是假的（`dev_partner_*`）
+- 云函数和客户端的 accept 逻辑已添加自动清理：当真实用户接受邀请时，自动移除 `dev_partner_*` 成员，为真实用户腾出位置
 
-根据QA清单描述,这应是一个开发版debug功能:
-- 点击「模拟第二人加入」后,memberCount变2,但第二人是假的(`dev_partner_*`)
-- 问题: 模拟占满2人名额后,真实第二人无法加入
-- 期望: 有「清除模拟搭档」,或真实accept自动踢掉模拟伙伴
+**实现方案**:
 
-**建议实现方案**:
+在 `acceptInviteLocal` 和 `cloudfunctions/acceptInvite` 中：
 
 ```javascript
-// 在acceptInvite中添加逻辑
-function acceptInviteLocal(inviteCode) {
-  // ... 现有逻辑 ...
-  
-  // 检查目标pair的members中是否有模拟伙伴
-  const members = pair.memberOpenids || []
-  const hasDevPartner = members.some(id => 
-    typeof id === 'string' && id.startsWith('dev_partner_')
-  )
-  
-  if (hasDevPartner && members.length >= 2) {
-    // 移除模拟伙伴,为真实用户腾出位置
-    const realMembers = members.filter(id => !id.startsWith('dev_partner_'))
-    const nextMembers = realMembers.concat([openid])
-    // ... 更新pair ...
-  }
-  // ... 继续正常流程 ...
+// 检查是否有模拟伙伴
+const hasDevPartner = members.some(id => 
+  typeof id === 'string' && id.startsWith('dev_partner_')
+)
+
+// 仅当真实满员时才拒绝加入
+if (members.length >= 2 && !hasDevPartner) {
+  return Promise.reject(new Error('配对已满员'))
 }
+
+// 移除模拟伙伴，为真实用户腾出位置
+const realMembers = members.filter(id => 
+  !(typeof id === 'string' && id.startsWith('dev_partner_'))
+)
+const nextMembers = realMembers.concat([openid])
 ```
 
-或在UI上提供「清除模拟搭档」按钮,手动调用清理函数。
+**HTTP 模式**: HTTP adapter 的 `simulateDevPartner` 返回提示信息，建议使用两个不同的 `x-openid` 进行测试。
 
 ## TC-P0-4: Solo历史迁移 - 产品待定
 
@@ -249,18 +244,19 @@ function migrateDataFromSoloToDual(oldPairId, newPairId, options) {
 
 ### TC-P0-5: 模拟第二人后堵死真实双人
 
-**当前状态**: ⚠️ 代码中尚未实现`simulateDevPartner`功能,**此测试用例暂不适用**
-
-**QA清单期望步骤**:
+**步骤**:
 1. 设`dataBackend: 'cloud'`,开发版,账号A进入「我们」
-2. 点debug「模拟第二人加入」,Toast「已模拟双人」,`memberCount=2`
-3. A再点「生成邀请码」
-4. 另开账号C(真实第二人)尝试加入A的pair
-5. 切换`dataBackend: 'http'`,重复步骤2
+2. 点击debug「模拟第二人加入」,Toast「已模拟双人」,`memberCount=2`
+3. A点「生成邀请码」,复制邀请码
+4. 另开账号C(真实第二人)尝试输入邀请码并「加入配对」
+5. 观察C是否能成功加入,A的pair中是否移除了`dev_partner_*`成员
 
-**通过标准** (未来实现时):
-- 有「清除模拟搭档」,或真实accept自动踢掉`dev_partner_*`
-- 清除后可生成码并让真实第二人加入
+**通过标准**:
+- ✅ C能成功加入A的配对
+- ✅ A的pair的`memberOpenids`中不再有`dev_partner_*`前缀的成员
+- ✅ A和C都能看到对方,`memberCount=2`且都是真实用户
+
+**HTTP模式**: HTTP adapter不支持`simulateDevPartner`,建议使用两个不同的`x-openid`头进行真实配对测试。
 
 ## 技术细节
 
