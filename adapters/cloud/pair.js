@@ -132,22 +132,39 @@ function createInviteLocal() {
       return Promise.reject(new Error('无法创建个人空间，请确认已开通云开发'))
     }
     const members = pair.memberOpenids || []
-    if (members.length >= 2) {
+    
+    // TC-SYNC-3: 过滤假伙伴，只计算真实成员数
+    const realMembers = members.filter(id => 
+      !(typeof id === 'string' && id.startsWith('dev_partner_'))
+    )
+    
+    if (realMembers.length >= 2) {
       return Promise.reject(new Error('配对已满员，无法再生成邀请码'))
     }
+    
+    // TC-SYNC-3: 如果有假伙伴，需要在更新时清除它们
+    const needsCleanup = members.length !== realMembers.length
     const inviteCode = generateInviteCode()
     const inviteExpireAt = Date.now() + INVITE_TTL_MS
     const db = wx.cloud.database()
+    
+    const updateData = {
+      inviteCode: inviteCode,
+      inviteExpireAt: inviteExpireAt,
+      inviteActive: true,
+      updatedAt: Date.now(),
+    }
+    
+    // TC-SYNC-3: 清除假伙伴
+    if (needsCleanup) {
+      updateData.memberOpenids = realMembers
+    }
+    
     return db
       .collection('pairs')
       .doc(pair._id)
       .update({
-        data: {
-          inviteCode: inviteCode,
-          inviteExpireAt: inviteExpireAt,
-          inviteActive: true,
-          updatedAt: Date.now(),
-        },
+        data: updateData,
       })
       .then(() =>
         db
@@ -546,11 +563,52 @@ function simulateDevPartner() {
   })
 }
 
+/**
+ * TC-SYNC-3: 开发版专用：清除当前pair中的所有假伙伴 (dev_partner_*)
+ * @returns {Promise<object>}
+ */
+function clearDevPartners() {
+  const app = getApp()
+  const isDev = !!(app && app.globalData && app.globalData.isDevBuild)
+  if (!isDev) {
+    return Promise.reject(new Error('仅开发版可用'))
+  }
+  
+  return getMyPair().then((pair) => {
+    if (!pair || !pair._id) {
+      return Promise.reject(new Error('当前没有配对'))
+    }
+    
+    const members = pair.memberOpenids || []
+    const realMembers = members.filter(id => 
+      !(typeof id === 'string' && id.startsWith('dev_partner_'))
+    )
+    
+    if (members.length === realMembers.length) {
+      return pair
+    }
+    
+    const db = wx.cloud.database()
+    const now = Date.now()
+    return db
+      .collection('pairs')
+      .doc(pair._id)
+      .update({
+        data: {
+          memberOpenids: realMembers,
+          updatedAt: now,
+        },
+      })
+      .then(() => getMyPair())
+  })
+}
+
 module.exports = {
   getMyPair,
   createInvite,
   acceptInvite,
   ensureSolo,
   simulateDevPartner,
+  clearDevPartners,
   updateBackground,
 }

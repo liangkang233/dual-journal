@@ -45,6 +45,7 @@ Page({
     loading: false,
     generating: false,
     simulating: false,
+    clearingFake: false,
     inviteCooldownSec: 0,
     accepting: false,
     inviteActive: false,
@@ -463,6 +464,30 @@ Page({
         wx.showToast({ title: msg.slice(0, 40), icon: 'none' })
       })
       .then(() => this.setData({ simulating: false }))
+  },
+
+  onClearFakePartners() {
+    if (!this.data.showDebug) return
+    if (this.data.clearingFake) return
+    this.setData({ clearingFake: true })
+    const run =
+      typeof pairService.clearDevPartners === 'function'
+        ? pairService.clearDevPartners()
+        : Promise.reject(new Error('当前后端不支持清除假伙伴'))
+    run
+      .then(() => {
+        wx.showToast({ title: '已清除假伙伴', icon: 'success' })
+        pushDebug(this, 'clearDevPartners ok')
+        this.setData({ _lastLoadedAt: 0 })
+        return this.refresh()
+      })
+      .catch((err) => {
+        const msg = (err && err.message) || '清除失败'
+        this.setData({ lastError: msg })
+        pushDebug(this, 'clearDevPartners fail: ' + msg)
+        wx.showToast({ title: msg.slice(0, 40), icon: 'none' })
+      })
+      .then(() => this.setData({ clearingFake: false }))
   },
 
   onCopyCode() {
