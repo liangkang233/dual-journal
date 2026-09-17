@@ -43,12 +43,16 @@ Page({
       const pairChanged = pairId !== lastPairId
       const epochChanged = pairEpoch !== lastPairEpoch
 
-      if (pairChanged || epochChanged) {
-        this.setData({ _lastPairId: pairId, _lastLoadedAt: 0, _lastPairEpoch: pairEpoch })
+      if (pairChanged) {
+        this.setData({ entries: [], todayAnns: [], todayBannerText: '', _lastPairId: pairId, _lastLoadedAt: 0, _lastPairEpoch: pairEpoch })
         this.loadEntries(true)
         this.loadTodayAnns()
-      } else if (!hasData || !isFresh) {
-        this.loadEntries(!hasData)
+      } else if (epochChanged) {
+        this.setData({ _lastPairId: pairId, _lastLoadedAt: 0, _lastPairEpoch: pairEpoch })
+        this.loadEntries(false)
+        this.loadTodayAnns()
+      } else if (!isFresh) {
+        this.loadEntries(false)
         this.loadTodayAnns()
       }
     })

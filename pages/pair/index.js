@@ -183,7 +183,11 @@ Page({
       return Promise.resolve()
     }
 
-    this.setData({ openid: openid, loading: true, statusText: '同步配对状态…' })
+    const showLoading = !hasData
+    this.setData({ openid: openid })
+    if (showLoading) {
+      this.setData({ loading: true, statusText: '同步配对状态…' })
+    }
 
     const run = () =>
       pairService
