@@ -216,12 +216,27 @@ app.post('/api/pairs/invite', requireAuth, (req, res) => {
   const existing = findPairByMember(openid)
   if (existing) {
     const members = JSON.parse(existing.member_openids || '[]')
-    if (members.length >= MAX_MEMBERS) {
+    
+    // TC-SYNC-3: 过滤假伙伴，只计算真实成员数
+    const realMembers = members.filter(id => 
+      !(typeof id === 'string' && id.startsWith('dev_partner_'))
+    )
+    
+    if (realMembers.length >= MAX_MEMBERS) {
       return res.status(400).json({ error: '配对已满员，无法再生成邀请码' })
     }
-    db.prepare(
-      `UPDATE pairs SET invite_code = ?, invite_expire_at = ?, invite_active = 1, updated_at = ? WHERE _id = ?`
-    ).run(inviteCode, inviteExpireAt, now, existing._id)
+    
+    // TC-SYNC-3: 如果有假伙伴，清除它们
+    const needsCleanup = members.length !== realMembers.length
+    if (needsCleanup) {
+      db.prepare(
+        `UPDATE pairs SET member_openids = ?, invite_code = ?, invite_expire_at = ?, invite_active = 1, updated_at = ? WHERE _id = ?`
+      ).run(JSON.stringify(realMembers), inviteCode, inviteExpireAt, now, existing._id)
+    } else {
+      db.prepare(
+        `UPDATE pairs SET invite_code = ?, invite_expire_at = ?, invite_active = 1, updated_at = ? WHERE _id = ?`
+      ).run(inviteCode, inviteExpireAt, now, existing._id)
+    }
     return res.json({
       pairId: existing._id,
       inviteCode,
@@ -262,7 +277,7 @@ app.post('/api/pairs/accept', requireAuth, (req, res) => {
   const mine = findPairByMember(openid)
   let myMembers = []
   if (mine) {
-    const myMembers = JSON.parse(mine.member_openids || '[]')
+    myMembers = JSON.parse(mine.member_openids || '[]')
     // 如果已在双人配对中,检查是否同一邀请码
     if (myMembers.length >= MAX_MEMBERS) {
       if (mine.invite_code === inviteCode) {
@@ -298,20 +313,31 @@ app.post('/api/pairs/accept', requireAuth, (req, res) => {
     return res.status(400).json({ error: '邀请码已过期，请让对方重新生成' })
   }
 
-  if (members.length >= MAX_MEMBERS) {
+  // TC-SYNC-3: 检查是否有模拟伙伴，如果有则清理以便真实用户加入
+  const hasDevPartner = members.some(id => 
+    typeof id === 'string' && id.startsWith('dev_partner_')
+  )
+  
+  if (members.length >= MAX_MEMBERS && !hasDevPartner) {
     db.prepare(
       `UPDATE pairs SET invite_active = 0, updated_at = ? WHERE _id = ?`
     ).run(now, found._id)
     return res.status(400).json({ error: '该配对已满员（最多 2 人）' })
   }
+  
+  // 移除模拟伙伴，为真实用户腾出位置
+  const realMembers = members.filter(id => 
+    !(typeof id === 'string' && id.startsWith('dev_partner_'))
+  )
 
-  const newMembers = members.concat([openid])
+  const newMembers = realMembers.concat([openid])
   const full = newMembers.length >= MAX_MEMBERS
   db.prepare(
     `UPDATE pairs SET member_openids = ?, invite_active = ?, invite_code = ?, updated_at = ? WHERE _id = ?`
   ).run(JSON.stringify(newMembers), full ? 0 : 1, full ? null : found.invite_code, now, found._id)
 
-  if (mine && myMembers && myMembers.length === 1) {
+  // TC-SYNC-3 fix: solo数据迁移逻辑修复
+  if (mine && myMembers.length === 1) {
     const hasEntries = db.prepare('SELECT COUNT(*) as cnt FROM entries WHERE pair_id = ?').get(mine._id)
     const hasTodos = db.prepare('SELECT COUNT(*) as cnt FROM todos WHERE pair_id = ?').get(mine._id)
     const hasAnniversaries = db.prepare('SELECT COUNT(*) as cnt FROM anniversaries WHERE pair_id = ?').get(mine._id)
@@ -326,12 +352,6 @@ app.post('/api/pairs/accept', requireAuth, (req, res) => {
     }
   }
 
-  // TC-P0-1/2 fix: 标记旧solo为inactive(软删除)
-  if (mine && JSON.parse(mine.member_openids || '[]').length === 1) {
-    db.prepare(
-      `UPDATE pairs SET invite_active = 0, inactivated_at = ?, updated_at = ? WHERE _id = ?`
-    ).run(now, now, mine._id)
-  }
 
   res.json({ pairId: found._id })
 })

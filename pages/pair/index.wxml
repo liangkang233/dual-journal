@@ -13,7 +13,8 @@
       <button class="btn ghost" size="mini" bindtap="onProbeCloud">探测云能力</button>
       <button class="btn ghost" size="mini" bindtap="onCopyDebug">复制调试信息</button>
       <button class="btn primary" size="mini" loading="{{simulating}}" bindtap="onSimulatePartner">模拟第二人加入</button>
-      <view class="hint">仅开发版：写入假成员，方便单人看「已配对」；真双人请用第二个微信号扫码。</view>
+      <button class="btn warn" size="mini" loading="{{clearingFake}}" bindtap="onClearFakePartners">清除假伙伴</button>
+      <view class="hint">仅开发版：写入假成员，方便单人看「已配对」；真双人请用第二个微信号扫码。清除假伙伴可恢复生成邀请码能力。</view>
     </block>
   </view>
   <view class="section card">

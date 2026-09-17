@@ -42,20 +42,35 @@ exports.main = async () => {
       const pair = found.data[0]
       const members = pair.memberOpenids || []
 
-      if (members.length >= MAX_MEMBERS) {
+      // TC-SYNC-3: 过滤假伙伴，只计算真实成员数
+      const realMembers = members.filter(id => 
+        !(typeof id === 'string' && id.startsWith('dev_partner_'))
+      )
+
+      if (realMembers.length >= MAX_MEMBERS) {
         return { ok: false, error: '配对已满员，无法再生成邀请码' }
+      }
+
+      // TC-SYNC-3: 如果有假伙伴，自动清除它们
+      const needsCleanup = members.length !== realMembers.length
+
+      const updateData = {
+        inviteCode,
+        inviteExpireAt,
+        inviteActive: true,
+        updatedAt: now,
+      }
+      
+      // TC-SYNC-3: 清除假伙伴
+      if (needsCleanup) {
+        updateData.memberOpenids = realMembers
       }
 
       await db
         .collection('pairs')
         .doc(pair._id)
         .update({
-          data: {
-            inviteCode,
-            inviteExpireAt,
-            inviteActive: true,
-            updatedAt: now,
-          },
+          data: updateData,
         })
 
       return {
